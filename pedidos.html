@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GastoFacil - Nuevo Pedido</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos personalizados para que el modal sea idéntico a la imagen de Android */
+        .android-modal-content {
+            border-radius: 28px !important;
+            border: none !important;
+            padding: 2rem 1.5rem 1.5rem 1.5rem;
+            max-width: 380px;
+            margin: auto;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        .android-modal-icon {
+            font-size: 4rem;
+            color: #5D87FF; /* Azul suave similar a la imagen */
+            line-height: 1;
+        }
+        .android-modal-title {
+            color: #111827;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .android-modal-text {
+            color: #6B7280;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-bottom: 2rem;
+        }
+        .btn-android-primary {
+            background: linear-gradient(90deg, #2F80ED 0%, #7F56D9 100%); /* Degradado del botón */
+            color: white !important;
+            border: none;
+            border-radius: 16px;
+            padding: 0.85rem;
+            font-weight: 600;
+            font-size: 1rem;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+        .btn-android-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-android-link {
+            background: none;
+            border: none;
+            color: #4B5563;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-top: 1.25rem;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+        }
+        .btn-android-link:hover {
+            color: #1F2937;
+        }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="p-4 mb-4">
+        <div class="d-flex align-items-center">
+            <div class="bg-primary p-2 rounded-3 me-2 shadow-sm">
+                <i class="bi bi-shop-window text-white fs-4"></i>
+            </div>
+            <h4 class="fw-bold mb-0" style="color: var(--primary-blue);">GastoFacil</h4>
+        </div>
+    </div>
+    
+    <nav class="nav flex-column">
+        <a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+        <a class="nav-link active" href="pedidos.html"><i class="bi bi-plus-circle-fill"></i> Nuevo Pedido</a>
+        <a class="nav-link" href="lista.html"><i class="bi bi-journal-text"></i> Historial</a>
+        <a class="nav-link" href="proveedores.html"><i class="bi bi-people"></i> Proveedores</a>
+        <a class="nav-link" href="reportes.html"><i class="bi bi-bar-chart-line"></i> Reportes</a>
+    </nav>
+
+    <div class="mt-auto pb-4">
+        <a class="nav-link text-danger" href="javascript:void(0)" onclick="cerrarSesion()">
+            <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+        </a>
+    </div>
+</aside>
+
+<main class="main-content">
+    <header class="mb-5">
+        <h2 class="fw-bold mb-1">Registrar Nuevo Pedido</h2>
+        <p class="text-muted">Ingresa los detalles de la compra realizada a tu proveedor.</p>
+    </header>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="form-card">
+                <form id="pedidoForm">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">FECHA DE COMPRA</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">PROVEEDOR</label>
+                            <select class="form-select" id="selectProveedor" required>
+                                <option value="" disabled selected hidden>Seleccionar proveedor</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">DESCRIPCIÓN DEL PEDIDO</label>
+                        <textarea class="form-control" rows="3" placeholder="Ej: 5 canastas de cerveza, 2 cajas de gaseosa familiar..."></textarea>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">VALOR TOTAL</label>
+                            <input type="text" class="form-control" placeholder="$ 0" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MÉTODO DE PAGO</label>
+                            <select class="form-select">
+                                <option>Efectivo</option>
+                                <option>Transferencia</option>
+                                <option>Crédito Proveedor</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-save">
+                            <i class="bi bi-check2-circle me-2"></i> Guardar Registro
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="alert alert-info border-0 shadow-sm p-4" style="border-radius: 24px; background: rgba(47, 128, 237, 0.05);">
+                <h6 class="fw-bold text-primary"><i class="bi bi-info-circle-fill me-2"></i> Consejo rápido</h6>
+                <p class="small text-muted mb-0">Registrar tus pedidos inmediatamente te ayuda a tener reportes de gastos exactos al final del mes.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="modalSinProveedores" text-center" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content android-modal-content text-center">
+            <div class="modal-body p-0">
+                <div class="android-modal-icon">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <h3 class="android-modal-title">Sin proveedores</h3>
+                <p class="android-modal-text">No hay proveedores registrados.<br>Puedes agregarlos ahora para continuar.</p>
+                
+                <button type="button" class="btn btn-android-primary" onclick="irAProveedores()">Ir a proveedores</button>
+                <button type="button" class="btn btn-android-link" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Arreglo simulado de proveedores (vacío para probar la alerta)
+    const listaProveedores = []; 
+
+    const selectProveedor = document.getElementById('selectProveedor');
+    // Instanciar el modal de Bootstrap de manera programática
+    const modalAlerta = new bootstrap.Modal(document.getElementById('modalSinProveedores'));
+
+    // Interceptamos el evento 'mousedown' para actuar justo antes de que el menú intente desplegarse
+    selectProveedor.addEventListener('mousedown', function(e) {
+        if (listaProveedores.length === 0) {
+            e.preventDefault(); // Evita que el select nativo se abra vacío
+            this.blur();        // Quita el foco del elemento
+            modalAlerta.show(); // Muestra la ventana emergente exacta de Android
+        }
+    });
+
+    function irAProveedores() {
+        // Redirecciona al apartado de gestión de proveedores
+        window.location.href = "proveedores.html";
+    }
+
+    function cerrarSesion() {
+        if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+            window.location.href = "index.html";
+        }
+    }
+
+    document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('¡Pedido registrado con éxito! (Simulación)');
+        window.location.href = 'lista.html';
+    });
+</script>
+</body>
+</html>

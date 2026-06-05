@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GastoFacil - Historial de Pedidos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="p-4 mb-4">
+        <div class="d-flex align-items-center">
+            <div class="bg-primary p-2 rounded-3 me-2 shadow-sm">
+                <i class="bi bi-shop-window text-white fs-4"></i>
+            </div>
+            <h4 class="fw-bold mb-0" style="color: var(--primary-blue);">GastoFacil</h4>
+        </div>
+    </div>
+    
+    <nav class="nav flex-column">
+        <a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+        <a class="nav-link" href="pedidos.html"><i class="bi bi-plus-circle"></i> Nuevo Pedido</a>
+        <a class="nav-link active" href="lista.html"><i class="bi bi-journal-text-fill"></i> Historial</a>
+        <a class="nav-link" href="proveedores.html"><i class="bi bi-people"></i> Proveedores</a>
+        <a class="nav-link" href="reportes.html"><i class="bi bi-bar-chart-line"></i> Reportes</a>
+    </nav>
+
+    <div class="mt-auto pb-4">
+        <a class="nav-link text-danger" href="javascript:void(0)" onclick="cerrarSesion()">
+            <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+        </a>
+    </div>
+</aside>
+
+<main class="main-content">
+    <header class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1" style="background: linear-gradient(135deg, #1e293b 0%, var(--primary-blue) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Historial de Pedidos</h2>
+            <p class="text-muted mb-0">Administra y revisa los registros de tus compras.</p>
+        </div>
+        <a href="pedidos.html" class="btn-header-gradient">
+            <i class="bi bi-plus-lg"></i> Nuevo Registro
+        </a>
+    </header>
+
+    <!-- Row for Search and Filter -->
+    <div class="d-flex gap-3 mb-4 flex-wrap">
+        <div class="search-input-group">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" placeholder="Buscar pedidos...">
+        </div>
+        <button class="btn-filter">
+            <i class="bi bi-sliders"></i> Filtros
+        </button>
+    </div>
+
+    <div class="list-card p-5">
+        <div class="empty-state">
+            <div class="mb-4">
+                <!-- SVG Clipboard & Bag Illustration -->
+                <svg class="clipboard-bag-svg" width="220" height="150" viewBox="0 0 220 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto;">
+                    <!-- Sparkles/Stars -->
+                    <path d="M40 30 L42 35 L47 37 L42 39 L40 44 L38 39 L33 37 L38 35 Z" fill="#93C5FD" opacity="0.6"/>
+                    <path d="M185 80 L186.5 83.5 L190 85 L186.5 86.5 L185 90 L183.5 86.5 L180 85 L183.5 83.5 Z" fill="#93C5FD" opacity="0.5"/>
+                    <circle cx="140" cy="40" r="3" fill="#93C5FD" opacity="0.4"/>
+                    <circle cx="65" cy="115" r="4" fill="#93C5FD" opacity="0.4"/>
+
+                    <!-- Background decorative circle -->
+                    <circle cx="110" cy="75" r="55" fill="#EFF6FF"/>
+
+                    <!-- Shopping Bag on the right -->
+                    <g class="bag-group" transform="translate(10, 0)">
+                        <!-- Bag Handle -->
+                        <path d="M125 72 C125 55 140 55 140 72" stroke="#60A5FA" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- Bag Body -->
+                        <path d="M115 72 C115 70 117 68 120 68 H145 C148 68 150 70 150 72 L153 110 C153 113 151 115 148 115 H117 C114 115 112 113 112 110 Z" fill="#93C5FD" stroke="#3B82F6" stroke-width="1.5"/>
+                    </g>
+
+                    <!-- Clipboard on the left -->
+                    <g class="clipboard-group" transform="translate(-10, 0)">
+                        <!-- Clipboard Board -->
+                        <rect x="85" y="45" width="55" height="75" rx="8" fill="#3B82F6"/>
+                        <!-- Clipboard Paper -->
+                        <rect x="90" y="52" width="45" height="63" rx="4" fill="#FFFFFF"/>
+                        <!-- Clipboard Clip -->
+                        <path d="M102 40 C102 38 104 36 107 36 H118 C121 36 123 38 123 40 V45 H102 Z" fill="#93C5FD"/>
+                        <rect x="108" y="38" width="9" height="3" rx="1.5" fill="#3B82F6"/>
+                        <!-- Smiley Face on paper -->
+                        <circle cx="106" cy="65" r="1.5" fill="#1D4ED8"/>
+                        <circle cx="119" cy="65" r="1.5" fill="#1D4ED8"/>
+                        <path d="M109 72 Q112.5 76 116 72" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round"/>
+                        <!-- Writing Lines -->
+                        <line x1="98" y1="84" x2="127" y2="84" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="98" y1="92" x2="127" y2="92" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="98" y1="100" x2="118" y2="100" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                </svg>
+            </div>
+            <h4 class="fw-bold text-dark mt-4 mb-2" style="font-size: 1.4rem;">Sin movimientos registrados</h4>
+            <p class="text-muted mb-4" style="font-size: 0.95rem;">Aún no hay pedidos en el historial.</p>
+            
+            <!-- Dashed Tip Box -->
+            <div class="tip-box">
+                <div class="tip-icon">
+                    <i class="bi bi-lightbulb"></i>
+                </div>
+                <div>
+                    <span class="text-dark fw-bold small">Tip:</span>
+                    <span class="text-muted small">Registra tus pedidos para llevar un mejor control de tus compras y gastos.</span>
+                </div>
+            </div>
+
+            <!-- Outline Registrar mi primer pedido Button -->
+            <a href="pedidos.html" class="btn-outline-blue mt-2">
+                <i class="bi bi-plus-lg"></i> Registrar mi primer pedido
+            </a>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function cerrarSesion() {
+        if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+            window.location.href = "index.html";
+        }
+    }
+</script>
+</body>
+</html>

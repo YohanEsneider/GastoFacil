@@ -1,0 +1,15 @@
+{
+  "name": "gastofacil",
+  "version": "1.0.0",
+  "description": "Aplicación de escritorio para gestión de gastos",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "Yohan",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^29.4.6"
+  }
+}

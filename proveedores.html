@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GastoFacil - Directorio de Proveedores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="p-4 mb-4">
+        <div class="d-flex align-items-center">
+            <div class="bg-primary p-2 rounded-3 me-2 shadow-sm"><i class="bi bi-shop-window text-white fs-4"></i></div>
+            <h4 class="fw-bold mb-0" style="color: var(--primary-blue);">GastoFacil</h4>
+        </div>
+    </div>
+    
+    <nav class="nav flex-column">
+        <a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+        <a class="nav-link" href="pedidos.html"><i class="bi bi-plus-circle"></i> Nuevo Pedido</a>
+        <a class="nav-link" href="lista.html"><i class="bi bi-journal-text"></i> Historial</a>
+        <a class="nav-link active" href="proveedores.html"><i class="bi bi-people-fill"></i> Proveedores</a>
+        <a class="nav-link" href="reportes.html"><i class="bi bi-bar-chart-line"></i> Reportes</a>
+    </nav>
+
+    <div class="mt-auto pb-4">
+        <a class="nav-link text-danger" href="javascript:void(0)" onclick="cerrarSesion()">
+            <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+        </a>
+    </div>
+</aside>
+
+<main class="main-content">
+    <header class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1" style="background: linear-gradient(135deg, #1e293b 0%, var(--primary-blue) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Directorio de Proveedores</h2>
+            <p class="text-muted mb-0">Gestiona tus contactos y horarios de abastecimiento.</p>
+        </div>
+        <button class="btn-header-gradient" data-bs-toggle="modal" data-bs-target="#modalProveedor">
+            <i class="bi bi-plus-lg"></i> Nuevo proveedor
+        </button>
+    </header>
+
+    <!-- Row for Search and Filter -->
+    <div class="d-flex gap-3 mb-4 flex-wrap">
+        <div class="search-input-group">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" placeholder="Buscar proveedor...">
+        </div>
+        <button class="btn-filter">
+            <i class="bi bi-sliders"></i> Filtros
+        </button>
+    </div>
+
+    <div class="empty-container p-5" style="max-width: 700px;">
+        <div class="mb-4">
+            <!-- SVG Shop & Time/Location Illustration -->
+            <svg class="shop-provider-svg" width="220" height="150" viewBox="0 0 220 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto;">
+                <!-- Sparkles/Stars and Bubbles -->
+                <circle cx="65" cy="85" r="4" fill="#93C5FD" opacity="0.3"/>
+                <circle cx="185" cy="45" r="3" fill="#93C5FD" opacity="0.4"/>
+                <circle cx="50" cy="40" r="5" fill="#EFF6FF" opacity="0.6"/>
+
+                <!-- Background decorative circle -->
+                <circle cx="110" cy="75" r="55" fill="#EFF6FF"/>
+
+                <!-- Location Pin on the left -->
+                <g class="pin-group" transform="translate(48, 55)">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 12 28 12 28C12 28 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 15C10.34 15 9 13.66 9 12C9 10.34 10.34 9 12 9C13.66 9 15 10.34 15 12C15 13.66 13.66 15 12 15Z" fill="#C084FC" opacity="0.7"/>
+                </g>
+
+                <!-- Clock/Time icon on the right -->
+                <g class="clock-group" transform="translate(135, 62)">
+                    <circle cx="15" cy="15" r="14" stroke="#93C5FD" stroke-width="2"/>
+                    <path d="M15 5 V15 H22" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+                </g>
+
+                <!-- Tree on the left of shop -->
+                <g class="tree-group" transform="translate(70, 75)">
+                    <!-- Tree Leaves -->
+                    <path d="M15 0 C25 0 28 15 28 25 C28 35 22 35 15 35 C8 35 2 35 2 25 C2 15 5 0 15 0 Z" fill="#86EFAC" opacity="0.8"/>
+                    <!-- Tree Trunk -->
+                    <rect x="13.5" y="32" width="3" height="12" fill="#93C5FD"/>
+                </g>
+
+                <!-- Main Shop Building -->
+                <g class="shop-group" transform="translate(85, 60)">
+                    <!-- Base -->
+                    <rect x="5" y="48" width="50" height="4" rx="1" fill="#3B82F6"/>
+                    <!-- Main Body -->
+                    <rect x="9" y="16" width="42" height="32" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+                    <!-- Shop Awning (Techo) -->
+                    <path d="M5 16 L10 5 H50 L55 16 Z" fill="#3B82F6"/>
+                    <!-- Awning stripes (soft colors) -->
+                    <path d="M10 16 L13 5 H18 L15 16 Z" fill="#60A5FA"/>
+                    <path d="M22 16 L23 5 H28 L27 16 Z" fill="#60A5FA"/>
+                    <path d="M34 16 L33 5 H38 L39 16 Z" fill="#60A5FA"/>
+                    <path d="M46 16 L43 5 H48 L50 16 Z" fill="#60A5FA"/>
+                    <!-- Door -->
+                    <rect x="18" y="30" width="10" height="18" fill="#1D4ED8"/>
+                    <circle cx="21" cy="39" r="1" fill="#FBBF24"/>
+                    <!-- Window -->
+                    <rect x="34" y="30" width="12" height="10" fill="#93C5FD" stroke="#3B82F6" stroke-width="1.5"/>
+                    <line x1="40" y1="30" x2="40" y2="40" stroke="#3B82F6" stroke-width="1.5"/>
+                </g>
+            </svg>
+        </div>
+        <h4 class="fw-bold text-dark mt-4 mb-2" style="font-size: 1.4rem;">Aún no tienes proveedores</h4>
+        <p class="text-muted mb-4" style="font-size: 0.95rem;">Agrega tus contactos para tener a la mano sus datos y horarios de abastecimiento.</p>
+        <button class="btn-action-gradient px-4 py-3" data-bs-toggle="modal" data-bs-target="#modalProveedor" style="border-radius: 50px;">
+            <i class="bi bi-plus-lg me-2"></i> Agregar proveedor
+        </button>
+    </div>
+</main>
+
+<div class="modal fade" id="modalProveedor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header border-0">
+                <h5 class="fw-bold">Registrar Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formProveedor">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Empresa</label>
+                        <input type="text" class="form-control" placeholder="Ej: Distribuidora de Lácteos" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" placeholder="300 000 0000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoría</label>
+                            <select class="form-select">
+                                <option>Bebidas</option>
+                                <option>Abarrotes</option>
+                                <option>Lácteos</option>
+                                <option>Otros</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Día de Visita</label>
+                        <input type="text" class="form-control" placeholder="Ej: Lunes">
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-add-main py-3">Guardar Proveedor</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function cerrarSesion() {
+        if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+            window.location.href = "index.html";
+        }
+    }
+
+    document.getElementById('formProveedor').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Proveedor guardado con éxito (Simulación)');
+        location.reload(); 
+    });
+</script>
+</body>
+</html>
