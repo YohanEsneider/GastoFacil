@@ -1,0 +1,7 @@
+com\mycompany\gastofacil\GastoFacil.class
+com\mycompany\gastofacil\GastoFacil$1.class
+com\mycompany\gastofacil\conexion\ConexionBD.class
+com\mycompany\gastofacil\vista\FrmProveedor.class
+com\mycompany\gastofacil\modelo\Proveedor.class
+com\mycompany\gastofacil\dao\ProveedorDAO.class
+com\mycompany\gastofacil\vista\FrmProveedor$1.class
