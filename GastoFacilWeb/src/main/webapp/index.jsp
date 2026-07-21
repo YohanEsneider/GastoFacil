@@ -1,106 +1,209 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@page import="java.util.List"%>
-<%@page import="com.gastofacil.modelo.Proveedor"%>
+<%@page import="java.sql.Connection"%>
+<%@page import="java.sql.DriverManager"%>
+<%@page import="java.sql.PreparedStatement"%>
+<%@page import="java.sql.ResultSet"%>
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>GastoFácil - Proveedores</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
-            h2 { color: #333; }
-            .container { display: flex; gap: 40px; }
-            .form-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); width: 300px; }
-            .table-box { flex-grow: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
-            input[type="text"] { width: 100%; padding: 8px; margin: 8px 0 16px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-            input[type="submit"] { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
-            input[type="submit"].btn-edit { background-color: #0288d1; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-            th { background-color: #f2f2f2; color: #333; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .btn-action { padding: 5px 10px; text-decoration: none; border-radius: 4px; color: white; font-size: 13px; font-weight: bold; }
-            .btn-delete { background-color: #d32f2f; margin-left: 5px; }
-            .btn-modify { background-color: #f57c00; }
-            .btn-cancel { display: block; text-align: center; margin-top: 10px; color: #666; font-size: 14px; }
-        </style>
-    </head>
-    <body>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>GastoFácil - Módulo de Proveedores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
 
-        <h2>Gestión de Proveedores - GastoFácil</h2>
-        
-        <%
-            // Verificar si el Servlet nos envió un proveedor para editar
-            Proveedor provEditar = (Proveedor) request.getAttribute("proveedorEditar");
-            boolean modoEdicion = (provEditar != null);
-        %>
-
-        <div class="container">
-            <div class="form-box">
-                <h3><%= modoEdicion ? "Modificar Proveedor" : "Registrar Proveedor" %></h3>
-                <form action="ProveedorServlet" method="POST">
-                    
-                    <input type="hidden" name="idProveedor" value="<%= modoEdicion ? provEditar.getIdProveedor() : "" %>">
-
-                    <label>Nombre:</label>
-                    <input type="text" name="nombre" value="<%= modoEdicion ? provEditar.getNombre() : "" %>" required>
-
-                    <label>Teléfono:</label>
-                    <input type="text" name="telefono" value="<%= modoEdicion ? provEditar.getTelefono() : "" %>">
-
-                    <label>Dirección:</label>
-                    <input type="text" name="direccion" value="<%= modoEdicion ? provEditar.getDireccion() : "" %>">
-
-                    <input type="submit" class="<%= modoEdicion ? "btn-edit" : "" %>" value="<%= modoEdicion ? "Actualizar Datos" : "Guardar Proveedor" %>">
-                    
-                    <% if(modoEdicion) { %>
-                        <a href="ProveedorServlet" class="btn-cancel">Cancelar Edición</a>
-                    <% } %>
-                </form>
-            </div>
-
-            <div class="table-box">
-                <h3>Proveedores Registrados en el Sistema</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Teléfono</th>
-                            <th>Dirección</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <%
-                            List<Proveedor> lista = (List<Proveedor>) request.getAttribute("proveedores");
-                            if (lista != null && !lista.isEmpty()) {
-                                for (Proveedor p : lista) {
-                        %>
-                        <tr>
-                            <td><%= p.getIdProveedor() %></td>
-                            <td><%= p.getNombre() %></td>
-                            <td><%= p.getTelefono() %></td>
-                            <td><%= p.getDireccion() %></td>
-                            <td>
-                                <a href="ProveedorServlet?accion=editar&id=<%= p.getIdProveedor() %>" class="btn-action btn-modify">Editar ✏️</a>
-                                <a href="ProveedorServlet?accion=eliminar&id=<%= p.getIdProveedor() %>" class="btn-action btn-delete" onclick="return confirm('¿Seguro que deseas eliminar este proveedor?')">Eliminar 🗑️</a>
-                            </td>
-                        </tr>
-                        <%
-                                }
-                            } else {
-                        %>
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: gray;">No hay proveedores registrados aún.</td>
-                        </tr>
-                        <%
-                            }
-                        %>
-                    </tbody>
-                </table>
+    <div class="container mt-4">
+        <div class="card text-center p-4 shadow-sm mb-4" style="border: 1px solid #e3e6f0;">
+            <h1 class="fw-bold text-primary display-4">GastoFácil</h1>
+            <p class="text-muted fs-5 mb-3">Módulo de Administración de Proveedores</p>
+            
+            <div class="d-flex justify-content-center gap-2">
+                <a href="index.jsp" class="btn btn-primary btn-sm fw-bold">Proveedores</a>
+                <a href="pedidos.jsp" class="btn btn-outline-secondary btn-sm">Pedidos</a>
             </div>
         </div>
+    </div>
 
-    </body>
+    <div class="container">
+        <div class="row">
+            
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        ➕ Registrar Proveedor
+                    </div>
+                    <div class="card-body">
+                        <form action="${pageContext.request.contextPath}/ProveedorServlet" method="POST">
+                            <input type="hidden" name="accion" value="guardar">
+                            
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label fw-semibold">Nombre del Proveedor:</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ej: Distribuidora Bavaria" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="telefono" class="form-label fw-semibold">Teléfono / Celular:</label>
+                                <input type="tel" 
+                                       class="form-control" 
+                                       id="telefono" 
+                                       name="telefono" 
+                                       placeholder="Ej: 3151234567" 
+                                       pattern="[0-9]+" 
+                                       title="Por favor, ingresa únicamente números sin espacios ni guiones." 
+                                       required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="direccion" class="form-label fw-semibold">Dirección:</label>
+                                <input type="text" class="form-control" id="direccion" name="direccion" placeholder="Ej: Calle 10 # 5-20" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label fw-semibold">Categoría:</label>
+                                <select class="form-select" id="categoria" name="categoria" required>
+                                    <option selected disabled value="">Selecciona una categoría...</option>
+                                    <option value="Abarrotes">Abarrotes</option>
+                                    <option value="Bebidas">Bebidas</option>
+                                    <option value="Lácteos">Lácteos</option>
+                                    <option value="Carnes/Embutidos">Carnes / Embutidos</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold d-block">Días de Visita:</label>
+                                <div class="d-flex flex-wrap gap-2 bg-white p-2 border rounded">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="diasVisita" value="Lunes" id="lunes">
+                                        <label class="form-check-label" for="lunes">Lun</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="diasVisita" value="Martes" id="martes">
+                                        <label class="form-check-label" for="martes">Mar</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="diasVisita" value="Miércoles" id="miercoles">
+                                        <label class="form-check-label" for="miercoles">Mié</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="diasVisita" value="Jueves" id="jueves">
+                                        <label class="form-check-label" for="jueves">Jue</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="diasVisita" value="Viernes" id="viernes">
+                                        <label class="form-check-label" for="viernes">Vie</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="diasVisita" value="Sábado" id="sabado">
+                                        <label class="form-check-label" for="sabado">Sáb</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary fw-bold">Guardar Proveedor</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light fw-bold text-secondary">
+                        Proveedores Registrados
+                    </div>
+                    <div class="card-body p-0">
+                        
+                        <%
+                            String errorMsg = (String) session.getAttribute("errorProveedor");
+                            if (errorMsg != null) {
+                        %>
+                                <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3" role="alert">
+                                    ⚠️ <strong>¡Atención!</strong> <%= errorMsg %>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                        <%
+                                session.removeAttribute("errorProveedor");
+                            }
+                        %>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="ps-3">ID</th>
+                                        <th>Nombre</th>
+                                        <th>Categoría</th>
+                                        <th>Días Visita</th>
+                                        <th>Teléfono</th>
+                                        <th>Dirección</th>
+                                        <th class="pe-3 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <%
+                                        String dbUrl = "jdbc:mysql://localhost:3306/gastofacil";
+                                        String dbUser = "root";
+                                        String dbPass = "Admin123*"; 
+                                        
+                                        try {
+                                            Class.forName("com.mysql.cj.jdbc.Driver");
+                                            Connection con = DriverManager.getConnection(dbUrl, dbUser, dbPass);
+                                            String sql = "SELECT idProveedor, nombre, telefono, direccion, categoria, dias_visita FROM proveedor ORDER BY idProveedor DESC";
+                                            PreparedStatement ps = con.prepareStatement(sql);
+                                            ResultSet rs = ps.executeQuery();
+                                            boolean tieneProveedores = false;
+                                            
+                                            while(rs.next()) {
+                                                tieneProveedores = true;
+                                                int idProv = rs.getInt("idProveedor");
+                                                String cat = rs.getString("categoria");
+                                                String dias = rs.getString("dias_visita");
+                                    %>
+                                                <tr>
+                                                    <td class="ps-3"><%= idProv %></td>
+                                                    <td class="fw-bold text-dark"><%= rs.getString("nombre") %></td>
+                                                    <td><span class="badge bg-secondary"><%= cat != null ? cat : "Abarrotes" %></span></td>
+                                                    <td class="small text-truncate" style="max-width: 150px;"><%= dias != null ? dias : "No asignado" %></td>
+                                                    <td><%= rs.getString("telefono") != null ? rs.getString("telefono") : "-" %></td>
+                                                    <td class="text-muted"><%= rs.getString("direccion") != null ? rs.getString("direccion") : "-" %></td>
+                                                    
+                                                    <td class="pe-3 text-center">
+                                                        <div class="d-flex gap-1 justify-content-center">
+                                                            <a href="editar_proveedor.jsp?id=<%= idProv %>" class="btn btn-warning btn-sm fw-bold px-2 py-1" style="font-size: 0.8rem;">✏️ Editar</a>
+                                                            <a href="${pageContext.request.contextPath}/ProveedorServlet?accion=eliminar&id=<%= idProv %>" 
+                                                               class="btn btn-danger btn-sm fw-bold px-2 py-1" style="font-size: 0.8rem;"
+                                                               onclick="return confirm('¿Seguro que deseas eliminar este proveedor?');">
+                                                                🗑️ Borrar
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                    <%
+                                            }
+                                            if(!tieneProveedores) {
+                                    %>
+                                                <tr><td colspan="7" class="text-center text-muted py-4">No hay proveedores registrados aún.</td></tr>
+                                    <%
+                                            }
+                                            rs.close(); ps.close(); con.close();
+                                        } catch(Exception e) {
+                                    %>
+                                            <tr><td colspan="7" class="text-center text-danger py-4">Error al cargar la tabla de proveedores.</td></tr>
+                                    <%
+                                        }
+                                    %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
