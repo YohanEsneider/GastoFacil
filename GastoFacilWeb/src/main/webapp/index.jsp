@@ -3,36 +3,70 @@
 <%@page import="java.sql.DriverManager"%>
 <%@page import="java.sql.PreparedStatement"%>
 <%@page import="java.sql.ResultSet"%>
+<%
+    // Control de sesión: Redirigir al login si no se ha autenticado
+    if (session.getAttribute("nombreUsuario") == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
+%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GastoFácil - Módulo de Proveedores</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa !important; }
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
-    <div class="container mt-4">
-        <div class="card text-center p-4 shadow-sm mb-4" style="border: 1px solid #e3e6f0;">
-            <h1 class="fw-bold text-primary display-4">GastoFácil</h1>
-            <p class="text-muted fs-5 mb-3">Módulo de Administración de Proveedores</p>
-            
-            <div class="d-flex justify-content-center gap-2">
-                <a href="index.jsp" class="btn btn-primary btn-sm fw-bold">Proveedores</a>
-                <a href="pedidos.jsp" class="btn btn-outline-secondary btn-sm">Pedidos</a>
+    <!-- Barra de Navegación Unificada Oscura con Dropdown de Usuario -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+        <div class="container-fluid px-5">
+            <span class="navbar-brand fw-bold text-primary">GastoFácil</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav me-auto">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
+                    <a class="nav-link active fw-bold border-bottom border-warning" href="${pageContext.request.contextPath}/index.jsp">Proveedores</a>
+                    <a class="nav-link" href="${pageContext.request.contextPath}/pedidos.jsp">Pedidos</a>
+                    <a class="nav-link" href="${pageContext.request.contextPath}/historial.jsp">Historial</a>
+                    <a class="nav-link" href="${pageContext.request.contextPath}/ReporteServlet">Reportes</a>
+                </div>
+                <!-- Menú Desplegable del Usuario -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle border-0 fw-semibold" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                        👤 <%= session.getAttribute("nombreUsuario") != null ? session.getAttribute("nombreUsuario") : "Usuario" %>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userMenu">
+                        <li><span class="dropdown-item-text text-muted small fw-bold text-uppercase"><%= session.getAttribute("rolUsuario") != null ? session.getAttribute("rolUsuario") : "Rol" %></span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger fw-semibold" href="${pageContext.request.contextPath}/AuthServlet?accion=logout">🚪 Cerrar sesión</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
-    </div>
+    </nav>
 
-    <div class="container">
-        <div class="row">
-            
-            <div class="col-md-4 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white fw-bold">
+    <div class="container mb-5">
+        <div class="mb-4">
+            <h2 class="text-secondary fw-bold m-0">🚚 Gestión de Proveedores</h2>
+            <p class="text-muted m-0">Administra, registra o modifica los proveedores de tu negocio.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- COLUMNA DEL FORMULARIO -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white fw-bold py-3">
                         ➕ Registrar Proveedor
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <form action="${pageContext.request.contextPath}/ProveedorServlet" method="POST">
                             <input type="hidden" name="accion" value="guardar">
                             
@@ -72,7 +106,7 @@
 
                             <div class="mb-3">
                                 <label class="form-label fw-semibold d-block">Días de Visita:</label>
-                                <div class="d-flex flex-wrap gap-2 bg-white p-2 border rounded">
+                                <div class="d-flex flex-wrap gap-2 bg-light p-2 border rounded">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="diasVisita" value="Lunes" id="lunes">
                                         <label class="form-check-label" for="lunes">Lun</label>
@@ -108,10 +142,11 @@
                 </div>
             </div>
 
-            <div class="col-md-8 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light fw-bold text-secondary">
-                        Proveedores Registrados
+            <!-- COLUMNA DE LA TABLA -->
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0 bg-white">
+                    <div class="card-header bg-white fw-bold text-secondary py-3 border-bottom">
+                        📋 Proveedores Registrados
                     </div>
                     <div class="card-body p-0">
                         
@@ -162,7 +197,7 @@
                                                 String dias = rs.getString("dias_visita");
                                     %>
                                                 <tr>
-                                                    <td class="ps-3"><%= idProv %></td>
+                                                    <td class="ps-3 fw-bold"><%= idProv %></td>
                                                     <td class="fw-bold text-dark"><%= rs.getString("nombre") %></td>
                                                     <td><span class="badge bg-secondary"><%= cat != null ? cat : "Abarrotes" %></span></td>
                                                     <td class="small text-truncate" style="max-width: 150px;"><%= dias != null ? dias : "No asignado" %></td>
@@ -200,7 +235,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
