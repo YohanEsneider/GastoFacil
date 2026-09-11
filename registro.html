@@ -9,6 +9,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        /* Solución para permitir escritura en inputs en Electron */
+        input, select, textarea {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            pointer-events: auto !important;
+            cursor: text !important;
+        }
+    </style>
+
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -25,7 +37,7 @@
 </div>
 
 <div class="d-flex justify-content-center align-items-center vh-100">
-    <div class="login-card" style="max-width: 500px;">
+    <div class="login-card" style="max-width: 500px; width: 100%;">
         <div class="text-center mb-4">
             <div class="bg-primary d-inline-block p-3 rounded-4 mb-3 shadow-sm" style="background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-accent) 100%) !important;">
                 <i class="bi bi-shop-window text-white fs-2"></i>
@@ -34,7 +46,7 @@
             <p class="text-muted small">Crea tu cuenta para gestionar tu tienda</p>
         </div>
 
-        <form action="index.html">
+        <form id="formRegistro" onsubmit="registrarUsuario(event)">
             <div class="mb-3">
                 <label for="name" class="form-label small fw-bold">Nombre de la Tienda / Encargado</label>
                 <input type="text" id="name" class="form-control" placeholder="Ej. Tienda El Porvenir" required>
@@ -47,9 +59,9 @@
 
             <div class="mb-3">
                 <label for="password" class="form-label small fw-bold">Contraseña</label>
-                <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="password" class="form-control" placeholder="••••••••" required minlength="6">
                 <div class="form-text small">
-                    Usa al menos 8 caracteres con letras y números.
+                    Usa al menos 6 caracteres con letras y números.
                 </div>
             </div>
 
@@ -60,7 +72,7 @@
                 </label>
             </div>
 
-            <button type="submit" class="btn btn-action w-100 mb-3">
+            <button type="submit" id="btnSubmit" class="btn btn-action w-100 mb-3">
                 Crear mi cuenta
             </button>
         </form>
@@ -75,5 +87,71 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="theme.js"></script>
+
+<script>
+    async function registrarUsuario(e) {
+        e.preventDefault();
+
+        const nombre = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const terms = document.getElementById('terms').checked;
+
+        if (!terms) {
+            Swal.fire('Atención', 'Debes aceptar los términos y condiciones.', 'warning');
+            return;
+        }
+
+        const btnSubmit = document.getElementById('btnSubmit');
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registrando...';
+
+        try {
+            // Envío con el atributo usuario generado a partir del correo
+            const res = await fetch('http://localhost:8080/GastoFacilWeb/api/registro', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nombre: nombre,
+                    usuario: email.split('@')[0],
+                    correo: email,
+                    password: password
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok || res.status === 201 || data.estatus === 'Exitoso') {
+                await Swal.fire({
+                    icon: 'success',
+                    title: '¡Cuenta Creada!',
+                    text: 'Tu registro ha sido exitoso. Ya puedes iniciar sesión.',
+                    confirmButtonColor: '#4318FF'
+                });
+                window.location.href = 'index.html';
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Registro',
+                    text: data.mensaje || 'No se pudo crear la cuenta.',
+                    confirmButtonColor: '#4318FF'
+                });
+            }
+        } catch (error) {
+            console.error('Error al registrar usuario:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Conexión',
+                text: 'No se pudo conectar con el servidor backend.',
+                confirmButtonColor: '#4318FF'
+            });
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = 'Crear mi cuenta';
+        }
+    }
+</script>
 </body>
 </html>

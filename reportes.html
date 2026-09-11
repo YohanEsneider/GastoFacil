@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,132 +8,571 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js para Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        /* REGISTRO DE TABLA EXCLUSIVO PARA EL PDF */
+        .tabla-pdf-print {
+            display: none;
+        }
+
+        /* ESTILOS DE IMPRESIÓN Y EXPORTACIÓN A PDF PROFESIONAL (A4) */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 12mm;
+            }
+
+            body {
+                background: #ffffff !important;
+                color: #111827 !important;
+                font-family: 'Inter', sans-serif !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Ocultar la navegación y elementos interactivos */
+            .sidebar, 
+            .btn-theme-toggle, 
+            .btn-outline-success, 
+            .btn-outline-danger, 
+            #btnGenerar, 
+            header p, 
+            .card.p-4.mb-4 { 
+                display: none !important; 
+            }
+
+            /* Contenedor principal expandido */
+            .main-content {
+                margin-left: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
+            header h2 {
+                color: #4318FF !important;
+                font-size: 20pt !important;
+                margin-bottom: 20px !important;
+                border-bottom: 2px solid #4318FF;
+                padding-bottom: 10px;
+                text-align: center;
+            }
+
+            /* Distribución de tarjetas de métricas */
+            .row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 15px !important;
+                margin-bottom: 20px !important;
+            }
+
+            .col-md-4 {
+                flex: 1 1 30% !important;
+                width: 32% !important;
+            }
+
+            .col-lg-6 {
+                flex: 1 1 48% !important;
+                width: 48% !important;
+            }
+
+            .card {
+                border: 1px solid #e5e7eb !important;
+                box-shadow: none !important;
+                border-radius: 12px !important;
+                background: #ffffff !important;
+                padding: 16px !important;
+                page-break-inside: avoid !important;
+            }
+
+            /* Aumento del tamaño de gráficas para llenar la hoja */
+            canvas {
+                max-width: 100% !important;
+                height: 320px !important;
+            }
+
+            /* Mostrar la tabla de resumen al imprimir */
+            .tabla-pdf-print {
+                display: block !important;
+                margin-top: 25px !important;
+                page-break-inside: avoid !important;
+            }
+
+            .tabla-pdf-print table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            .tabla-pdf-print th {
+                background-color: #4318FF !important;
+                color: #ffffff !important;
+                padding: 8px 12px !important;
+                font-size: 10pt !important;
+                text-align: left !important;
+            }
+
+            .tabla-pdf-print td {
+                padding: 8px 12px !important;
+                border-bottom: 1px solid #e5e7eb !important;
+                font-size: 9.5pt !important;
+            }
+        }
+    </style>
+
     <script>
-        (function() {
+        (function () {
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
         })();
     </script>
 </head>
+
 <body>
 
-<aside class="sidebar">
-    <div class="p-4 mb-4">
-        <div class="d-flex align-items-center">
-            <div class="bg-primary p-2 rounded-3 me-2 shadow-sm"><i class="bi bi-shop-window text-white fs-4"></i></div>
-            <h4 class="fw-bold mb-0" style="color: var(--primary-blue);">GastoFacil</h4>
-        </div>
-    </div>
-    
-    <nav class="nav flex-column">
-        <a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-        <a class="nav-link" href="pedidos.html"><i class="bi bi-plus-circle"></i> Nuevo Pedido</a>
-        <a class="nav-link" href="historial.html"><i class="bi bi-journal-text"></i> Historial</a>
-        <a class="nav-link" href="proveedores.html"><i class="bi bi-people"></i> Proveedores</a>
-        <a class="nav-link active" href="reportes.html"><i class="bi bi-bar-chart-line-fill"></i> Reportes</a>
-    </nav>
-
-    <div class="mt-auto pb-4">
-        <a class="nav-link text-danger" href="javascript:void(0)" onclick="cerrarSesion()">
-            <i class="bi bi-box-arrow-left"></i> Cerrar sesión
-        </a>
-    </div>
-</aside>
-
-<main class="main-content">
-    <header class="d-flex justify-content-between align-items-center mb-5">
-        <div>
-            <h2 class="fw-bold mb-1">Reportes de Gastos</h2>
-            <p class="text-muted mb-0">Analiza el flujo de dinero y el comportamiento de tus compras.</p>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            <button class="btn btn-export"><i class="bi bi-file-earmark-pdf me-2"></i> PDF</button>
-            <button class="btn btn-export"><i class="bi bi-file-earmark-excel me-2"></i> Excel</button>
-            <button id="theme-toggle" class="btn-theme-toggle" aria-label="Toggle theme">
-                <i class="bi bi-sun-fill"></i>
-            </button>
-        </div>
-    </header>
-
-    <div class="report-card mb-4">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Desde</label>
-                <input type="date" class="form-control border-0 bg-light" style="border-radius: 12px;">
+    <aside class="sidebar">
+        <div class="p-4 mb-4">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary p-2 rounded-3 me-2 shadow-sm"><i class="bi bi-shop-window text-white fs-4"></i>
+                </div>
+                <h4 class="fw-bold mb-0" style="color: var(--primary-blue);">GastoFacil</h4>
             </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Hasta</label>
-                <input type="date" class="form-control border-0 bg-light" style="border-radius: 12px;">
+        </div>
+
+        <nav class="nav flex-column">
+            <a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+            <a class="nav-link" href="pedidos.html"><i class="bi bi-plus-circle"></i> Nuevo Pedido</a>
+            <a class="nav-link" href="historial.html"><i class="bi bi-journal-text"></i> Historial</a>
+            <a class="nav-link" href="proveedores.html"><i class="bi bi-people"></i> Proveedores</a>
+            <a class="nav-link active" href="reportes.html"><i class="bi bi-bar-chart-line-fill"></i> Reportes</a>
+        </nav>
+
+        <div class="mt-auto pb-4">
+            <a class="nav-link text-danger" href="javascript:void(0)" id="btnCerrarSesion">
+                <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Reportes de Gastos</h2>
+                <p class="text-muted mb-0">Analiza el flujo de dinero y el comportamiento de tus compras.</p>
             </div>
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-success border-0 shadow-sm fw-semibold" onclick="exportarExcelCliente()" style="border-radius: 12px; background: #e6f4ea; color: #1e7e34;">
+                    <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Excel
+                </button>
+                <button class="btn btn-outline-danger border-0 shadow-sm fw-semibold" onclick="window.print()" style="border-radius: 12px; background: #fde8e8; color: #e02424;">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF
+                </button>
+                <button id="theme-toggle" class="btn-theme-toggle" aria-label="Toggle theme">
+                    <i class="bi bi-sun-fill"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Panel Filtros -->
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px; background: var(--bg-card);">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Desde</label>
+                    <input type="date" id="fechaDesde" class="form-control py-2">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Hasta</label>
+                    <input type="date" id="fechaHasta" class="form-control py-2">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Proveedor</label>
+                    <select id="selectProveedorFiltro" class="form-select py-2">
+                        <option value="">Todos los proveedores</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button id="btnGenerar" class="btn text-white w-100 fw-bold py-2" style="background: linear-gradient(90deg, #5b50e0 0%, #7b73f6 100%); border-radius: 12px; border: none;">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Métricas -->
+        <div class="row g-4 mb-4">
             <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted text-uppercase">Proveedor</label>
-                <select class="form-select border-0 bg-light" style="border-radius: 12px;">
-                    <option selected>Todos los proveedores</option>
-                </select>
+                <div class="card border-0 shadow-sm p-3" style="border-radius: 20px; background: var(--bg-card);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle p-3 me-3" style="background: #eef2ff; color: #4318FF;">
+                            <i class="bi bi-wallet2 fs-3"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small fw-bold text-uppercase d-block">GASTO TOTAL</span>
+                            <h3 class="fw-bold mb-0 text-dark" id="metricGastoTotal">$ 0</h3>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-primary w-100 fw-bold py-2" style="border-radius: 12px;">Generar</button>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="report-card text-center">
-                <div class="stat-icon bg-light-blue mx-auto"><i class="bi bi-cash-stack"></i></div>
-                <h6 class="text-muted mb-1 small fw-bold">GASTO TOTAL</h6>
-                <h3 class="fw-bold mb-0">$0.00</h3>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm p-3" style="border-radius: 20px; background: var(--bg-card);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle p-3 me-3" style="background: #e6f4ea; color: #01B574;">
+                            <i class="bi bi-cart-check fs-3"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small fw-bold text-uppercase d-block">PROMEDIO POR COMPRA</span>
+                            <h3 class="fw-bold mb-0 text-dark" id="metricPromedio">$ 0</h3>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="report-card text-center">
-                <div class="stat-icon bg-light-green mx-auto"><i class="bi bi-graph-up-arrow"></i></div>
-                <h6 class="text-muted mb-1 small fw-bold">PROMEDIO POR COMPRA</h6>
-                <h3 class="fw-bold mb-0">$0.00</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="report-card text-center">
-                <div class="stat-icon bg-light-orange mx-auto"><i class="bi bi-tag"></i></div>
-                <h6 class="text-muted mb-1 small fw-bold">COMPRAS ESTE MES</h6>
-                <h3 class="fw-bold mb-0">0</h3>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-4">
-        <div class="col-md-8">
-            <div class="report-card">
-                <h6 class="fw-bold mb-4">Tendencia de Gastos Mensuales</h6>
-                <div class="chart-placeholder">
-                    <i class="bi bi-bar-chart fs-1 mb-2"></i>
-                    <p class="mb-0">El gráfico aparecerá aquí cuando registres datos</p>
-                    <small>(Preparado para integrar Chart.js con Python)</small>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm p-3" style="border-radius: 20px; background: var(--bg-card);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle p-3 me-3" style="background: #fff4e5; color: #FFB547;">
+                            <i class="bi bi-receipt-cutoff fs-3"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small fw-bold text-uppercase d-block">TOTAL DE COMPRAS</span>
+                            <h3 class="fw-bold mb-0 text-dark" id="metricCantidad">0</h3>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="report-card">
-                <h6 class="fw-bold mb-4">Gastos por Categoría</h6>
-                <div class="chart-placeholder">
-                    <i class="bi bi-pie-chart fs-1 mb-2"></i>
-                    <p class="mb-0 small">Sin datos disponibles</p>
+
+        <!-- Fila de Gráficos Integrados -->
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px; background: var(--bg-card);">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="bi bi-bar-chart-fill me-2 text-primary"></i> Tendencia de Gastos por Fecha
+                    </h6>
+                    <div style="position: relative; height: 320px;">
+                        <canvas id="chartTendencia"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px; background: var(--bg-card);">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="bi bi-pie-chart-fill me-2 text-primary"></i> Distribución por Método de Pago
+                    </h6>
+                    <div style="position: relative; height: 320px;">
+                        <canvas id="chartMetodos"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function cerrarSesion() {
-        if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
-            window.location.href = "index.html";
+        <!-- Tabla Resumen Exclusiva para la vista de Impresión PDF -->
+        <div class="tabla-pdf-print">
+            <h6 class="fw-bold mb-3">Detalle de Compras y Pedidos Filtrados</h6>
+            <table>
+                <thead>
+                    <tr>
+                        <th># ID</th>
+                        <th>Fecha</th>
+                        <th>Proveedor</th>
+                        <th>Detalle</th>
+                        <th>Método</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyPdfPrint">
+                    <!-- Rellenado dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="theme.js"></script>
+    <script src="api.js"></script>
+
+    <script>
+        let chartTendenciaInstance = null;
+        let chartMetodosInstance = null;
+        let todosLosPedidos = [];
+        let pedidosFiltradosActuales = [];
+
+        // Evento de cierre de sesión unificado con SweetAlert2
+        document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
+            e.preventDefault();
+            Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: 'Tendrás que ingresar tus credenciales nuevamente para acceder.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4318FF',
+                cancelButtonColor: '#8F9BBA',
+                confirmButtonText: 'Sí, salir',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = "index.html";
+                }
+            });
+        });
+
+        function formatearMoneda(valor) {
+            if (isNaN(valor) || valor === null || valor === undefined) valor = 0;
+            return '$ ' + Math.round(valor).toLocaleString('es-CO');
         }
-    }
-</script>
-<script src="theme.js"></script>
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarComboProveedores();
+            await cargarDatosReporte();
+
+            document.getElementById('btnGenerar').addEventListener('click', procesarFiltros);
+        });
+
+        async function cargarComboProveedores() {
+            try {
+                const proveedores = await API.obtenerProveedores();
+                const select = document.getElementById('selectProveedorFiltro');
+                select.innerHTML = '<option value="">Todos los proveedores</option>';
+                if (Array.isArray(proveedores)) {
+                    proveedores.forEach(p => {
+                        select.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.error('Error cargando proveedores:', e);
+            }
+        }
+
+        async function cargarDatosReporte() {
+            try {
+                const dataRaw = await API.obtenerPedidos();
+                
+                if (Array.isArray(dataRaw)) {
+                    todosLosPedidos = dataRaw.map(p => {
+                        let total = 0;
+                        if (p.valorTotal !== undefined) total = parseFloat(p.valorTotal);
+                        else if (p.valor_total !== undefined) total = parseFloat(p.valor_total);
+
+                        return {
+                            idPedido: p.idPedido || p.id_pedido || 0,
+                            fecha: p.fecha || p.fecha_pedido || '',
+                            proveedor: p.proveedor || p.nombreProveedor || 'General',
+                            metodoPago: p.metodoPago || p.metodo_pago || 'Efectivo',
+                            descripcion: p.descripcion || p.resumen || '',
+                            valorTotal: isNaN(total) ? 0 : total
+                        };
+                    });
+
+                    procesarFiltros();
+                }
+            } catch (e) {
+                console.error('Error cargando pedidos para reporte:', e);
+            }
+        }
+
+        function procesarFiltros() {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            const proveedorFiltro = document.getElementById('selectProveedorFiltro').value;
+
+            pedidosFiltradosActuales = todosLosPedidos;
+
+            if (desde) {
+                pedidosFiltradosActuales = pedidosFiltradosActuales.filter(p => p.fecha >= desde);
+            }
+            if (hasta) {
+                pedidosFiltradosActuales = pedidosFiltradosActuales.filter(p => p.fecha <= hasta);
+            }
+            if (proveedorFiltro) {
+                pedidosFiltradosActuales = pedidosFiltradosActuales.filter(p => p.proveedor === proveedorFiltro);
+            }
+
+            // 1. Métricas
+            const totalGasto = pedidosFiltradosActuales.reduce((sum, p) => sum + p.valorTotal, 0);
+            const cantidad = pedidosFiltradosActuales.length;
+            const promedio = cantidad > 0 ? (totalGasto / cantidad) : 0;
+
+            document.getElementById('metricGastoTotal').textContent = formatearMoneda(totalGasto);
+            document.getElementById('metricPromedio').textContent = formatearMoneda(promedio);
+            document.getElementById('metricCantidad').textContent = cantidad;
+
+            // 2. Gráfico 1: Tendencia por Fecha
+            const fechasMap = {};
+            pedidosFiltradosActuales.forEach(p => {
+                const f = p.fecha || 'Sin fecha';
+                fechasMap[f] = (fechasMap[f] || 0) + p.valorTotal;
+            });
+            const labelsFechas = Object.keys(fechasMap).sort();
+            const dataFechas = labelsFechas.map(f => fechasMap[f]);
+            renderGraficoTendencia(labelsFechas, dataFechas);
+
+            // 3. Gráfico 2: Métodos de Pago
+            const metodosMap = {};
+            pedidosFiltradosActuales.forEach(p => {
+                const m = p.metodoPago || 'Efectivo';
+                metodosMap[m] = (metodosMap[m] || 0) + p.valorTotal;
+            });
+            const labelsMetodos = Object.keys(metodosMap);
+            const dataMetodos = labelsMetodos.map(m => metodosMap[m]);
+            renderGraficoMetodos(labelsMetodos, dataMetodos);
+
+            // 4. Llenar la tabla oculta para el PDF
+            const tbody = document.getElementById('tbodyPdfPrint');
+            tbody.innerHTML = '';
+            pedidosFiltradosActuales.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${p.idPedido}</td>
+                        <td>${p.fecha}</td>
+                        <td>${p.proveedor}</td>
+                        <td>${p.descripcion || 'Sin detalle'}</td>
+                        <td>${p.metodoPago}</td>
+                        <td><strong>${formatearMoneda(p.valorTotal)}</strong></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderGraficoTendencia(labels, data) {
+            const ctx = document.getElementById('chartTendencia').getContext('2d');
+            if (chartTendenciaInstance) chartTendenciaInstance.destroy();
+
+            chartTendenciaInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length ? labels : ['Sin datos'],
+                    datasets: [{
+                        label: 'Gasto Total ($)',
+                        data: data.length ? data : [0],
+                        backgroundColor: '#5b50e0',
+                        borderRadius: 8,
+                        barThickness: 36
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderGraficoMetodos(labels, data) {
+            const ctx = document.getElementById('chartMetodos').getContext('2d');
+            if (chartMetodosInstance) chartMetodosInstance.destroy();
+
+            chartMetodosInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length ? labels : ['Sin datos'],
+                    datasets: [{
+                        data: data.length ? data : [1],
+                        backgroundColor: ['#5b50e0', '#01B574', '#FFB547', '#E02424'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 20 } 
+                        } 
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function exportarExcelCliente() {
+            if (!pedidosFiltradosActuales || pedidosFiltradosActuales.length === 0) {
+                Swal.fire('Atención', 'No hay datos disponibles en el reporte para exportar.', 'info');
+                return;
+            }
+
+            try {
+                let excelHTML = `
+                    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                    <head>
+                        <meta charset="utf-8" />
+                        <style>
+                            table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+                            th { background-color: #4318FF; color: #ffffff; font-weight: bold; padding: 10px; border: 1px solid #3311DB; text-align: center; }
+                            td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
+                            .titulo { font-size: 16pt; font-weight: bold; color: #4318FF; text-align: center; margin-bottom: 15px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="titulo">GASTOFÁCIL - REPORTE DE GASTOS</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID Pedido</th>
+                                    <th>Fecha</th>
+                                    <th>Proveedor</th>
+                                    <th>Detalle / Resumen</th>
+                                    <th>Método de Pago</th>
+                                    <th>Valor Total ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                pedidosFiltradosActuales.forEach(p => {
+                    excelHTML += `
+                        <tr>
+                            <td>#${p.idPedido}</td>
+                            <td>${p.fecha || 'N/A'}</td>
+                            <td>${p.proveedor || 'General'}</td>
+                            <td>${p.descripcion || 'Sin detalle'}</td>
+                            <td>${p.metodoPago || 'Efectivo'}</td>
+                            <td>${p.valorTotal}</td>
+                        </tr>
+                    `;
+                });
+
+                excelHTML += `
+                            </tbody>
+                        </table>
+                    </body>
+                    </html>
+                `;
+
+                const blob = new Blob([excelHTML], { type: 'application/vnd.ms-excel;charset=utf-8' });
+                const fechaActual = new Date().toISOString().slice(0, 10);
+                const filename = `Reporte_Gastos_GastoFacil_${fechaActual}.xls`;
+
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+
+            } catch (err) {
+                console.error("Error al exportar Excel:", err);
+                Swal.fire('Error', 'No se pudo generar el archivo de Excel.', 'error');
+            }
+        }
+    </script>
 </body>
+
 </html>

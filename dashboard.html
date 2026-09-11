@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
@@ -47,22 +48,27 @@
     </nav>
 
     <div class="mt-auto pb-4">
-        <a class="nav-link text-danger" href="javascript:void(0)" onclick="cerrarSesion()">
+        <a class="nav-link text-danger" href="javascript:void(0)" id="btnCerrarSesion">
             <i class="bi bi-box-arrow-left"></i> Cerrar sesión
         </a>
     </div>
 </aside>
 
 <main class="main-content">
-    <header class="d-flex justify-content-between align-items-center mb-5">
+    <header class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold mb-1">¡Hola de nuevo! 👋</h2>
+            <h2 class="fw-bold mb-1" id="saludoUsuario">¡Hola de nuevo! 👋</h2>
             <p class="text-muted mb-0">Este es el resumen de tu negocio hoy.</p>
         </div>
         <button id="theme-toggle" class="btn-theme-toggle" aria-label="Toggle theme">
             <i class="bi bi-sun-fill"></i>
         </button>
     </header>
+
+    <!-- Alerta dinámica de estado del servidor -->
+    <div id="bannerErrorBackend" class="alert alert-warning border-0 shadow-sm mb-4 d-none" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> Backend no detectado. Para actualizar en tiempo real, inicia tu servidor Tomcat ejecutando GastoFacilWeb.
+    </div>
 
     <!-- Fila 1: Gasto Total Card (Large size) -->
     <div class="row g-4 mb-4">
@@ -78,16 +84,14 @@
                         </svg>
                     </div>
                     <h6 class="text-muted mb-1 fw-bold mt-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">GASTO TOTAL (MES)</h6>
-                    <h1 class="fw-bold mb-0 text-dark" style="font-size: 3rem; letter-spacing: -1px;">$0.00</h1>
+                    <h1 class="fw-bold mb-0 text-dark" id="gastoTotalMes" style="font-size: 3rem; letter-spacing: -1px;">$0</h1>
                 </div>
                 <div class="d-none d-sm-block">
                     <!-- SVG Wallet Illustration -->
                     <svg class="wallet-svg" width="180" height="130" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Decorative bubbles behind the wallet -->
                         <circle cx="130" cy="30" r="16" fill="#e0f2fe" opacity="0.5"/>
                         <circle cx="145" cy="50" r="6" fill="#e0f2fe" opacity="0.8"/>
                         <circle cx="30" cy="90" r="8" fill="#e0f2fe" opacity="0.6"/>
-                        <!-- Cash/Bills sticking out -->
                         <g class="wallet-bill-2">
                             <rect x="55" y="10" width="60" height="35" rx="3" transform="rotate(15 55 10)" fill="#A7F3D0" stroke="#34D399" stroke-width="1.5"/>
                             <circle cx="85" cy="28" r="6" fill="#6EE7B7" transform="rotate(15 55 10)" opacity="0.8"/>
@@ -96,14 +100,10 @@
                             <rect x="40" y="15" width="65" height="35" rx="3" transform="rotate(5 40 15)" fill="#6EE7B7" stroke="#059669" stroke-width="1.5"/>
                             <circle cx="72" cy="32" r="6" fill="#34D399" transform="rotate(5 40 15)" opacity="0.9"/>
                         </g>
-                        <!-- Main Wallet Body -->
                         <path d="M25 45C25 42.2386 27.2386 40 30 40H120C122.761 40 125 42.2386 125 45V95C125 97.7614 122.761 100 120 100H30C27.2386 100 25 97.7614 25 95V45Z" fill="#2F80ED"/>
-                        <!-- Wallet Front Layer -->
                         <path d="M25 55C25 52.2386 27.2386 50 30 50H120C122.761 50 125 52.2386 125 55V95C125 97.7614 122.761 100 120 100H30C27.2386 100 25 97.7614 25 95V55Z" fill="#60A5FA"/>
-                        <!-- Wallet Flap with snap -->
                         <path d="M100 65C100 62.2386 102.239 60 105 60H125V80H105C102.239 80 100 77.7614 100 75V65Z" fill="#1D4ED8"/>
                         <circle cx="112" cy="70" r="4" fill="#FBBF24"/>
-                        <!-- Decorative plant leaves next to it -->
                         <path d="M10 95C10 85 15 75 22 75C21 82 17 92 10 95Z" fill="#93C5FD" opacity="0.6"/>
                         <path d="M18 95C18 88 23 80 28 80C27 85 24 92 18 95Z" fill="#60A5FA" opacity="0.4"/>
                     </svg>
@@ -119,10 +119,10 @@
                 <div class="icon-box-premium bg-soft-green-premium">
                     <i class="bi bi-eye"></i>
                 </div>
-                <h6 class="text-muted mb-1 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">Pedidos</h6>
-                <h2 class="fw-bold mb-0 text-dark" style="font-size: 2.2rem;">0</h2>
+                <h6 class="text-muted mb-1 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">Pedidos Registrados</h6>
+                <h2 class="fw-bold mb-0 text-dark" id="totalPedidos" style="font-size: 2.2rem;">0</h2>
                 <div class="badge-pill-trend badge-pill-trend-green">
-                    <i class="bi bi-graph-up-arrow"></i> Este mes
+                    <i class="bi bi-graph-up-arrow"></i> En la base de datos
                 </div>
             </div>
         </div>
@@ -133,7 +133,7 @@
                     <i class="bi bi-shop"></i>
                 </div>
                 <h6 class="text-muted mb-1 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">Proveedores Activos</h6>
-                <h2 class="fw-bold mb-0 text-dark" style="font-size: 2.2rem;">0</h2>
+                <h2 class="fw-bold mb-0 text-dark" id="totalProveedores" style="font-size: 2.2rem;">0</h2>
                 <div class="badge-pill-trend badge-pill-trend-orange">
                     <i class="bi bi-people-fill"></i> En tu red
                 </div>
@@ -147,19 +147,12 @@
             <div class="card-analiza-datos d-flex flex-column flex-md-row align-items-center justify-content-between gap-4">
                 <div class="d-flex align-items-center gap-4 flex-column flex-sm-row text-center text-sm-start">
                     <div class="bg-soft-lavender">
-                        <!-- SVG Bar Chart -->
                         <svg width="48" height="48" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Bar 1 -->
                             <rect class="bar-1" x="12" y="32" width="6" height="18" rx="3" fill="url(#bar-grad)"/>
-                            <!-- Bar 2 -->
                             <rect class="bar-2" x="24" y="22" width="6" height="28" rx="3" fill="url(#bar-grad)"/>
-                            <!-- Bar 3 -->
                             <rect class="bar-3" x="36" y="12" width="6" height="38" rx="3" fill="url(#bar-grad)"/>
-                            <!-- Trend Line -->
                             <path class="chart-line" d="M9 40 L21 28 L33 22 L45 10" stroke="#705DF2" stroke-width="2.5" stroke-linecap="round"/>
-                            <!-- Trend Node -->
                             <circle cx="45" cy="10" r="3.5" fill="#705DF2" stroke="#ffffff" stroke-width="1.5"/>
-                            <!-- Gradients -->
                             <defs>
                                 <linearGradient id="bar-grad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="#2F80ED"/>
@@ -183,20 +176,73 @@
     </div>
 </main>
 
-<!-- Botón Flotante de Mensajes -->
-<button class="floating-message-btn" onclick="alert('Centro de Mensajes (Simulación)')">
-    <i class="bi bi-envelope"></i>
-</button>
-
-<script>
-    function cerrarSesion() {
-        if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
-            window.location.href = "index.html";
-        }
-    }
-</script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="theme.js"></script>
+<script src="api.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. Recuperar contexto de sesión activo
+        const sesionStr = localStorage.getItem('usuarioSesion');
+        let nombreUser = localStorage.getItem('nombreUsuario') || 'Usuario';
+
+        if (sesionStr) {
+            try {
+                const sesionObj = JSON.parse(sesionStr);
+                nombreUser = sesionObj.usuario || sesionObj.nombreUsuario || nombreUser;
+            } catch (e) {}
+        }
+
+        const elSaludo = document.getElementById('saludoUsuario');
+        if (elSaludo) {
+            elSaludo.textContent = `¡Hola de nuevo, ${nombreUser}! 👋`;
+        }
+
+        // 2. Cargar métricas en tiempo real
+        await cargarMetricas();
+    });
+
+    async function cargarMetricas() {
+        try {
+            const data = await API.obtenerDashboard();
+
+            if (data) {
+                const formatoMoneda = new Intl.NumberFormat('es-CO', {
+                    style: 'currency',
+                    currency: 'COP',
+                    maximumFractionDigits: 0
+                });
+
+                document.getElementById('gastoTotalMes').textContent = formatoMoneda.format(data.gastosMes || 0);
+                document.getElementById('totalPedidos').textContent = data.totalPedidos || 0;
+                document.getElementById('totalProveedores').textContent = data.totalProveedores || 0;
+            }
+        } catch (error) {
+            console.error('Error silencioso al sincronizar dashboard:', error);
+        }
+    }
+
+    // Modal mejorado de Cierre de Sesión con SweetAlert2
+    document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
+        e.preventDefault();
+        Swal.fire({
+            title: '¿Cerrar sesión?',
+            text: 'Tendrás que ingresar tus credenciales nuevamente.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4318FF',
+            cancelButtonColor: '#8F9BBA',
+            confirmButtonText: 'Sí, salir',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "index.html";
+            }
+        });
+    });
+</script>
 </body>
 </html>
