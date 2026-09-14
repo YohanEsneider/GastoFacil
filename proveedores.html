@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=12">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         (function () {
@@ -61,21 +61,24 @@
             </div>
         </header>
 
-        <!-- Barra de Búsqueda -->
-        <div class="d-flex gap-3 mb-4 flex-wrap">
-            <div class="search-input-group flex-grow-1">
+        <!-- Barra de Búsqueda y Contador -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div class="search-input-group flex-grow-1" style="max-width: 500px;">
                 <i class="bi bi-search"></i>
                 <input type="text" id="inputBuscar" class="form-control"
                     placeholder="Buscar proveedor por nombre o teléfono...">
             </div>
+            <div class="text-muted small fw-semibold" id="txtContadorProveedores">
+                <!-- Se actualiza dinámicamente -->
+            </div>
         </div>
 
-        <!-- Contenedor para la Cuadrícula de Tarjetas de Proveedores -->
-        <div id="gridProveedores" class="row g-3 mb-4 d-none">
-            <!-- Tarjetas dinámicas inyectadas por JS -->
+        <!-- Cuadrícula de Tarjetas de Proveedores -->
+        <div id="gridProveedores" class="row g-4 mb-4 d-none">
+            <!-- Inyectado dinámicamente por JS -->
         </div>
 
-        <!-- Contenedor Estado Vacío -->
+        <!-- Estado Vacío -->
         <div id="emptyState" class="empty-container p-5" style="max-width: 700px;">
             <div class="mb-4">
                 <svg class="shop-provider-svg" width="220" height="150" viewBox="0 0 220 150" fill="none"
@@ -114,8 +117,7 @@
                 </svg>
             </div>
             <h4 class="fw-bold text-dark mt-4 mb-2" style="font-size: 1.4rem;">Aún no tienes proveedores</h4>
-            <p class="text-muted mb-4" style="font-size: 0.95rem;">Agrega tus contactos para tener a la mano sus datos
-                de abastecimiento.</p>
+            <p class="text-muted mb-4" style="font-size: 0.95rem;">Agrega tus contactos para tener a la mano sus datos de abastecimiento.</p>
             <button class="btn-action-gradient px-4 py-3" onclick="abrirModalCrear()" style="border-radius: 50px;">
                 <i class="bi bi-plus-lg me-2"></i> Agregar proveedor
             </button>
@@ -125,14 +127,13 @@
     <!-- Modal Registrar / Editar Proveedor -->
     <div class="modal fade" id="modalProveedor" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg">
+            <div class="modal-content shadow-lg" style="border-radius: 20px;">
                 <div class="modal-header border-0">
                     <h5 class="fw-bold" id="modalTitulo">Registrar Proveedor</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="formProveedor">
-                        <!-- Campo Oculto para Guardar el ID en modo Edición -->
                         <input type="hidden" id="provId" value="">
 
                         <div class="mb-3">
@@ -151,12 +152,12 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold text-muted small">Días de Visita (Opcional)</label>
-                                <input type="text" id="provDiasVisita" class="form-control" placeholder="Ej: Lunes y Jueves">
+                                <input type="text" id="provDiasVisita" class="form-control" placeholder="Ej: Semanal, Miercoles">
                             </div>
                         </div>
                         <div class="d-grid mt-4">
-                            <button type="submit" id="btnGuardarProv" class="btn btn-add-main py-3"
-                                style="background: linear-gradient(90deg, #2F80ED 0%, #7F56D9 100%); color: white; border: none; border-radius: 12px; font-weight: 600;">
+                            <button type="submit" id="btnGuardarProv" class="btn py-3 text-white fw-bold"
+                                style="background: linear-gradient(90deg, #2F80ED 0%, #7F56D9 100%); border: none; border-radius: 12px;">
                                 Guardar Proveedor
                             </button>
                         </div>
@@ -173,7 +174,7 @@
     <script>
         let listaProveedores = [];
 
-        // Evento de cierre de sesión unificado con SweetAlert2
+        // Cierre de sesión con SweetAlert2
         document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
             e.preventDefault();
             Swal.fire({
@@ -195,7 +196,19 @@
             });
         });
 
-        document.addEventListener('DOMContentLoaded', cargarProveedores);
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarProveedores();
+
+            // Escuchador dinámico para re-renderizar tarjetas al cambiar tema claro/oscuro
+            const btnTheme = document.querySelector('.btn-theme-toggle');
+            if (btnTheme) {
+                btnTheme.addEventListener('click', () => {
+                    setTimeout(() => {
+                        renderizarProveedores(listaProveedores);
+                    }, 50);
+                });
+            }
+        });
 
         async function cargarProveedores() {
             try {
@@ -209,8 +222,14 @@
         function renderizarProveedores(proveedores) {
             const grid = document.getElementById('gridProveedores');
             const emptyState = document.getElementById('emptyState');
+            const txtContador = document.getElementById('txtContadorProveedores');
 
             if (!grid || !emptyState) return;
+
+            if (txtContador) {
+                const total = proveedores ? proveedores.length : 0;
+                txtContador.innerHTML = `<i class="bi bi-people me-1"></i> ${total} ${total === 1 ? 'proveedor' : 'proveedores'}`;
+            }
 
             if (!proveedores || proveedores.length === 0) {
                 grid.classList.add('d-none');
@@ -222,32 +241,70 @@
             grid.classList.remove('d-none');
             grid.innerHTML = '';
 
-            proveedores.forEach(p => {
-                grid.innerHTML += `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 shadow-sm border-0 p-3 position-relative" style="border-radius: 12px; background: var(--bg-card);">
-                            
-                            <!-- Botón Editar -->
-                            <button class="btn btn-sm btn-outline-primary border-0 position-absolute top-0 end-0 m-2 rounded-circle" 
-                                    title="Editar proveedor" 
-                                    onclick="abrirModalEditar(${p.idProveedor}, '${escapeHtml(p.nombre)}', '${escapeHtml(p.telefono || '')}', '${escapeHtml(p.categoria || '')}', '${escapeHtml(p.diasVisita || '')}')">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
+            // Detectar estado actual del tema
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-                            <div class="d-flex align-items-center mb-2 pe-4">
-                                <div class="bg-light-primary text-primary p-2 rounded-circle me-3">
-                                    <i class="bi bi-building fs-4"></i>
+            // Paleta dinámica según modo claro u oscuro
+            const bgCard = isDark ? '#111C44' : '#ffffff';
+            const borderCard = isDark ? 'rgba(255, 255, 255, 0.08)' : 'transparent';
+            const bgHeader = isDark ? '#1B254B' : '#F4F0FF';
+            const textTitle = isDark ? '#FFFFFF' : '#1B2559';
+            const textBody = isDark ? '#D0D7DE' : '#2B3674';
+            const bgBadgePurple = isDark ? 'rgba(127, 86, 217, 0.25)' : '#ECE6FF';
+            const textBadgePurple = isDark ? '#C084FC' : '#7F56D9';
+            const bgBadgeBlue = isDark ? 'rgba(47, 128, 237, 0.25)' : '#E8F1FF';
+            const textBadgeBlue = isDark ? '#60A5FA' : '#2F80ED';
+            const bgButton = isDark ? '#111C44' : '#ffffff';
+
+            proveedores.forEach(p => {
+                const idProv = p.idProveedor || p.id_proveedor || p.id;
+                grid.innerHTML += `
+                    <div class="col-sm-6 col-lg-4 col-xl-3">
+                        <div class="card h-100 p-3" style="background: ${bgCard}; border: 1px solid ${borderCard}; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);">
+                            
+                            <!-- Header Tintado -->
+                            <div class="d-flex align-items-center gap-3 mb-3 p-2.5" style="background-color: ${bgHeader}; border-radius: 16px;">
+                                <div class="d-flex align-items-center justify-content-center text-white" 
+                                     style="width: 48px; height: 48px; background: linear-gradient(135deg, #2F80ED 0%, #7F56D9 100%); border-radius: 50%; box-shadow: 0 4px 10px rgba(127, 86, 217, 0.3); flex-shrink: 0;">
+                                    <i class="bi bi-shop fs-5"></i>
                                 </div>
-                                <div>
-                                    <h6 class="fw-bold mb-0">${p.nombre}</h6>
-                                    <small class="text-muted">${p.categoria || 'General'}</small>
+                                <div class="overflow-hidden">
+                                    <h6 class="fw-bold mb-1 text-truncate" style="font-size: 1.05rem; color: ${textTitle};">${p.nombre}</h6>
+                                    <span class="badge" style="background-color: ${bgBadgePurple}; color: ${textBadgePurple}; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+                                        ${p.categoria || 'Proveedor'}
+                                    </span>
                                 </div>
                             </div>
-                            <hr class="my-2 text-muted opacity-25">
-                            <div class="small text-muted">
-                                <p class="mb-1"><i class="bi bi-telephone me-2"></i>${p.telefono || 'Sin teléfono'}</p>
-                                <p class="mb-0"><i class="bi bi-calendar-event me-2"></i>Visitas: ${p.diasVisita || 'Por definir'}</p>
+
+                            <!-- Teléfono y Visitas -->
+                            <div class="px-1 mb-3" style="color: ${textBody};">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-telephone me-3 fs-6" style="color: #7F56D9;"></i>
+                                    <span class="fw-bold small me-auto">${p.telefono || 'Sin número'}</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-calendar-event me-3 fs-6" style="color: #7F56D9;"></i>
+                                    <span class="small me-2 opacity-75">Visitas:</span>
+                                    <span class="badge" style="background-color: ${bgBadgeBlue}; color: ${textBadgeBlue}; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+                                        ${p.diasVisita || 'Semanal'}
+                                    </span>
+                                </div>
                             </div>
+
+                            <!-- Botones Inferiores Redondeados -->
+                            <div class="d-flex justify-content-between gap-2 mt-auto pt-2">
+                                <button class="btn flex-fill d-flex align-items-center justify-content-center gap-1"
+                                        style="border: 1.5px solid #7F56D9; background: ${bgButton}; color: ${textBadgePurple}; border-radius: 12px; font-weight: 600; font-size: 0.85rem; padding: 8px 12px;"
+                                        onclick="abrirModalEditar(${idProv}, '${escapeHtml(p.nombre)}', '${escapeHtml(p.telefono || '')}', '${escapeHtml(p.categoria || '')}', '${escapeHtml(p.diasVisita || '')}')">
+                                    <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i> Editar
+                                </button>
+                                <button class="btn flex-fill d-flex align-items-center justify-content-center gap-1"
+                                        style="border: 1.5px solid #FF5E5E; background: ${bgButton}; color: #FF5E5E; border-radius: 12px; font-weight: 600; font-size: 0.85rem; padding: 8px 12px;"
+                                        onclick="eliminarProveedor(${idProv}, '${escapeHtml(p.nombre)}')">
+                                    <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i> Eliminar
+                                </button>
+                            </div>
+
                         </div>
                     </div>
                 `;
@@ -256,6 +313,68 @@
 
         function escapeHtml(text) {
             return String(text).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        async function eliminarProveedor(idProveedor, nombreProveedor) {
+            try {
+                const pedidos = await API.obtenerPedidos();
+                const tienePedidos = Array.isArray(pedidos) && pedidos.some(ped => {
+                    const idP = ped.idProveedor || ped.id_proveedor;
+                    const nombreP = ped.proveedor || ped.nombreProveedor;
+                    return (idP && idP == idProveedor) || (nombreP && nombreP.toLowerCase() === nombreProveedor.toLowerCase());
+                });
+
+                if (tienePedidos) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se puede eliminar',
+                        text: `El proveedor "${nombreProveedor}" tiene historial de pedidos asociados. Para proteger tus registros contables no se puede borrar.`,
+                        confirmButtonColor: '#4318FF'
+                    });
+                    return;
+                }
+
+                const confirmacion = await Swal.fire({
+                    title: '¿Eliminar proveedor?',
+                    text: `Vas a eliminar a "${nombreProveedor}". Esta acción no se puede deshacer.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#E02424',
+                    cancelButtonColor: '#8F9BBA',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                });
+
+                if (confirmacion.isConfirmed) {
+                    const idTienda = localStorage.getItem('idTienda') || '1';
+                    const res = await fetch(`http://localhost:8080/GastoFacilWeb/api/proveedores?id=${idProveedor}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Usuario-Id': String(idTienda)
+                        },
+                        credentials: 'include'
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && data.estatus === "Exitoso") {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminado',
+                            text: 'El proveedor ha sido eliminado con éxito.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        cargarProveedores();
+                    } else {
+                        Swal.fire('Error', data.mensaje || 'No se pudo eliminar el proveedor.', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error al eliminar proveedor:', error);
+                Swal.fire('Error', 'No se pudo conectar con el servidor para procesar la eliminación.', 'error');
+            }
         }
 
         function abrirModalCrear() {

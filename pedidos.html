@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         (function () {
@@ -59,24 +59,24 @@
         <div class="row g-4">
             <!-- Formulario Principal -->
             <div class="col-lg-8 col-xl-9">
-                <!-- Contenedor con borde visible y adaptabilidad al tema oscuro -->
-                <div class="card card-form-box p-4">
+                <!-- Contenedor ampliado verticalmente con mejor espacio interno -->
+                <div class="card card-form-box p-5">
                     <form id="formPedido">
                         <!-- Fila 1: Fecha, Proveedor y Método de Pago -->
-                        <div class="row g-3 mb-4">
+                        <div class="row g-4 mb-4">
                             <div class="col-md-4">
                                 <label class="form-label text-uppercase small fw-bold">FECHA DE COMPRA</label>
-                                <input type="date" id="pedFecha" name="fechaPedido" class="form-control py-2" required>
+                                <input type="date" id="pedFecha" name="fechaPedido" class="form-control py-2.5" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label text-uppercase small fw-bold">PROVEEDOR</label>
-                                <select id="selectProveedor" name="idProveedor" class="form-select py-2" required>
+                                <select id="selectProveedor" name="idProveedor" class="form-select py-2.5" required>
                                     <option value="" selected disabled>Seleccionar proveedor...</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label text-uppercase small fw-bold">MÉTODO DE PAGO</label>
-                                <select id="pedMetodo" name="metodoPago" class="form-select py-2">
+                                <select id="pedMetodo" name="metodoPago" class="form-select py-2.5">
                                     <option value="Efectivo" selected>Efectivo</option>
                                     <option value="Transferencia">Transferencia</option>
                                     <option value="Crédito">Crédito</option>
@@ -85,7 +85,7 @@
                         </div>
 
                         <!-- Sección Ítems -->
-                        <div class="mb-4">
+                        <div class="mb-5">
                             <label class="form-label text-uppercase small fw-bold mb-3">DESGLOSE DEL PEDIDO (PRODUCTOS)</label>
 
                             <div class="table-responsive">
@@ -105,13 +105,13 @@
                                 </table>
                             </div>
 
-                            <button type="button" class="btn btn-outline-blue border-2 px-4 py-2 mt-2 fw-semibold" onclick="agregarFilaProducto()">
+                            <button type="button" class="btn btn-outline-blue border-2 px-4 py-2.5 mt-3 fw-semibold" onclick="agregarFilaProducto()">
                                 <i class="bi bi-plus-circle me-1"></i> Agregar producto
                             </button>
                         </div>
 
                         <!-- Total Acumulado -->
-                        <div class="total-general-card mb-4">
+                        <div class="total-general-card mb-5 p-4">
                             <div>
                                 <span class="text-uppercase small fw-bold text-muted d-block">VALOR TOTAL</span>
                                 <small class="text-muted">Total acumulado de productos</small>
@@ -120,8 +120,8 @@
                         </div>
 
                         <!-- Botón Enviar -->
-                        <div class="d-grid">
-                            <button type="submit" id="btnGuardar" class="btn btn-action-gradient py-3 text-white fw-bold">
+                        <div class="d-grid pt-2">
+                            <button type="submit" id="btnGuardar" class="btn btn-action-gradient py-3.5 text-white fw-bold fs-6">
                                 <i class="bi bi-check-circle me-2"></i> Guardar Registro
                             </button>
                         </div>
@@ -149,27 +149,26 @@
     <script src="api.js"></script>
 
     <script>
-        // Modal mejorado de Cierre de Sesión con SweetAlert2
-    document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
-        e.preventDefault();
-        Swal.fire({
-            title: '¿Cerrar sesión?',
-            text: 'Tendrás que ingresar tus credenciales nuevamente.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#4318FF',
-            cancelButtonColor: '#8F9BBA',
-            confirmButtonText: 'Sí, salir',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = "index.html";
-            }
+        document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
+            e.preventDefault();
+            Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: 'Tendrás que ingresar tus credenciales nuevamente.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4318FF',
+                cancelButtonColor: '#8F9BBA',
+                confirmButtonText: 'Sí, salir',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.href = "index.html";
+                }
+            });
         });
-    });
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('pedFecha').valueAsDate = new Date();
@@ -200,7 +199,7 @@
 
             tr.innerHTML = `
                 <td>
-                    <input type="number" class="form-control text-center py-2 input-cant" value="1" min="1" oninput="recalcularFila(this, 'cant')" required>
+                    <input type="number" class="form-control text-center py-2 input-cant" value="1" min="1" onfocus="this.select()" oninput="recalcularFila(this, 'cant')" required>
                 </td>
                 <td>
                     <input type="text" class="form-control py-2 input-desc" placeholder="Descripción del producto..." required>
@@ -208,13 +207,13 @@
                 <td>
                     <div class="input-group">
                         <span class="input-group-text border-2">$</span>
-                        <input type="number" step="0.01" class="form-control py-2 input-val" value="0" min="0" oninput="recalcularFila(this, 'val')" required>
+                        <input type="number" step="0.01" class="form-control py-2 input-val" value="0" min="0" onfocus="this.select()" oninput="recalcularFila(this, 'val')" required>
                     </div>
                 </td>
                 <td>
                     <div class="input-group">
                         <span class="input-group-text border-2">$</span>
-                        <input type="number" step="0.01" class="form-control py-2 input-subtotal fw-bold text-primary" value="0" min="0" oninput="recalcularFila(this, 'subtotal')" required>
+                        <input type="number" step="0.01" class="form-control py-2 input-subtotal fw-bold text-primary" value="0" min="0" onfocus="this.select()" oninput="recalcularFila(this, 'subtotal')" required>
                     </div>
                 </td>
                 <td class="text-center">

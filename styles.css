@@ -97,6 +97,49 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* ==========================================
+   BACKGROUND LIGHT ORBS & ANIMATIONS
+   ========================================== */
+.bg-shape-1 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: -120px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(139, 92, 246, 0.05) 70%);
+  filter: blur(80px);
+  border-radius: 50%;
+  z-index: 0;
+  animation: floatOrb 12s ease-in-out infinite alternate;
+}
+
+.bg-shape-2 {
+  position: absolute;
+  width: 550px;
+  height: 550px;
+  bottom: -150px;
+  right: -120px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.16) 0%, rgba(16, 185, 129, 0.05) 70%);
+  filter: blur(90px);
+  border-radius: 50%;
+  z-index: 0;
+  animation: floatOrb 15s ease-in-out infinite alternate-reverse;
+}
+
+html[data-theme="dark"] .bg-shape-1 {
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.22) 0%, rgba(167, 139, 250, 0.08) 70%);
+}
+
+html[data-theme="dark"] .bg-shape-2 {
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.2) 0%, rgba(52, 211, 153, 0.08) 70%);
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(60px, 40px) scale(1.1); }
 }
 
 /* Custom Scrollbar */
@@ -409,16 +452,25 @@ html[data-theme="dark"] h2 {
   -webkit-text-fill-color: transparent !important;
 }
 
+/* Login Card con backdrop blur mejorado */
 .login-card {
-  background: var(--card-bg); backdrop-filter: blur(20px);
-  padding: 50px 40px; border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg); width: 100%; max-width: 420px;
-  border: 1px solid var(--card-border); animation: float 6s ease-in-out infinite;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 50px 40px; 
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg); 
+  width: 100%; 
+  max-width: 420px;
+  border: 1px solid var(--card-border); 
+  animation: float 6s ease-in-out infinite;
+  position: relative;
+  z-index: 10;
 }
 
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
 
 /* ==========================================
    NEW PREMIUM WEB DESIGN SYSTEM CLASSES
@@ -1062,13 +1114,7 @@ html[data-theme="dark"] .bg-white {
   color: var(--text-primary) !important;
 }
 
-/* ==========================================
-   PARCHE: COMPONENTES QUE SE QUEDABAN CLAROS
-   EN MODO OSCURO (faltaba cubrirlos con
-   las variables del tema)
-   ========================================== */
-
-/* Tarjetas Bootstrap genéricas (.card sin clase custom) */
+/* Tarjetas Bootstrap genéricas */
 html[data-theme="dark"] .card {
   background-color: var(--card-bg) !important;
   border-color: var(--card-border) !important;
@@ -1145,8 +1191,7 @@ html[data-theme="dark"] .tooltip-inner {
   color: var(--text-primary) !important;
 }
 
-/* Caja de consejo (tip-box): mejorar contraste del fondo casi
-   transparente sobre el gradiente oscuro */
+/* Caja de consejo (tip-box) */
 html[data-theme="dark"] .tip-box {
   background-color: rgba(167, 139, 250, 0.07);
   border-color: rgba(167, 139, 250, 0.3);
@@ -1155,4 +1200,242 @@ html[data-theme="dark"] .tip-box,
 html[data-theme="dark"] .tip-box p,
 html[data-theme="dark"] .tip-box span {
   color: var(--text-primary);
+}
+
+/* ==========================================
+   CORRECCIÓN DEFINITIVA ELEMENTOS BLANCOS
+   ========================================== */
+
+html[data-theme="dark"] {
+  /* 1. Modulo Nuevo Pedido & Historial (Filas de Tablas) */
+  .table,
+  .table-items,
+  .table tbody tr,
+  .table-items tbody tr,
+  .table tbody td,
+  .table-items tbody td {
+    background-color: var(--card-bg) !important;
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+  }
+
+  .table tbody tr:hover,
+  .table-items tbody tr:hover {
+    background-color: var(--bg-surface) !important;
+    background: var(--bg-surface) !important;
+  }
+
+  /* 2. Modulo Reportes (Círculos de Íconos) */
+  .report-card .stat-icon,
+  .stat-card .icon-box,
+  .stat-card .icon-box-premium,
+  .report-card div.rounded-circle,
+  .stat-card div.rounded-circle,
+  .report-card [class*="bg-soft-"],
+  .report-card [class*="bg-light-"],
+  .stat-card [class*="bg-soft-"],
+  .stat-card [class*="bg-light-"] {
+    background-color: var(--bg-surface) !important;
+    background: var(--bg-surface) !important;
+    border-color: var(--card-border) !important;
+  }
+
+  /* 3. Botones de Exportar (Reportes) */
+  .btn-export {
+    background-color: var(--card-bg) !important;
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .btn-export:hover {
+    background-color: var(--bg-surface) !important;
+    background: var(--bg-surface) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+  }
+}
+/* ===================================================
+   ESTILOS PREMIUM PARA TARJETAS DE PROVEEDORES
+   =================================================== */
+
+.card-proveedor-exact {
+    background: var(--bg-card, #ffffff) !important;
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(112, 144, 176, 0.1) !important;
+    padding: 16px !important;
+}
+
+/* Banner de Cabecera */
+.card-header-tint {
+    background-color: #F4F0FF !important;
+    border-radius: 16px !important;
+    padding: 10px 14px !important;
+}
+
+.card-header-title {
+    color: #1B2559 !important;
+}
+
+.icon-circle-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    background: linear-gradient(135deg, #2F80ED 0%, #7F56D9 100%) !important;
+    border-radius: 50% !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 4px 10px rgba(127, 86, 217, 0.3) !important;
+    flex-shrink: 0 !important;
+}
+
+/* Badges */
+.badge-soft-purple {
+    background-color: #ECE6FF !important;
+    color: #7F56D9 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+}
+
+.badge-soft-blue {
+    background-color: #E8F1FF !important;
+    color: #2F80ED !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+}
+
+/* Botones */
+.btn-custom-edit {
+    border: 1.5px solid #7F56D9 !important;
+    background: #ffffff !important;
+    color: #7F56D9 !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+}
+
+.btn-custom-delete {
+    border: 1.5px solid #FF5E5E !important;
+    background: #ffffff !important;
+    color: #FF5E5E !important;
+    border-radius: 12px !important;
+    font-weight: 600 !weight;
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+}
+
+/* ---------------------------------------------------
+   ADAPTACIÓN MODO OSCURO (data-theme="dark")
+   --------------------------------------------------- */
+.card-proveedor-exact {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(112, 144, 176, 0.1) !important;
+    padding: 16px !important;
+}
+
+.card-header-tint {
+    background-color: #F4F0FF !important;
+    border-radius: 16px !important;
+    padding: 10px 14px !important;
+}
+
+.card-header-title {
+    color: #1B2559 !important;
+}
+
+.icon-circle-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    background: linear-gradient(135deg, #2F80ED 0%, #7F56D9 100%) !important;
+    border-radius: 50% !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 4px 10px rgba(127, 86, 217, 0.3) !important;
+    flex-shrink: 0 !important;
+}
+
+.badge-soft-purple {
+    background-color: #ECE6FF !important;
+    color: #7F56D9 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+}
+
+.badge-soft-blue {
+    background-color: #E8F1FF !important;
+    color: #2F80ED !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+}
+
+.btn-custom-edit {
+    border: 1.5px solid #7F56D9 !important;
+    background: #ffffff !important;
+    color: #7F56D9 !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+}
+
+.btn-custom-delete {
+    border: 1.5px solid #FF5E5E !important;
+    background: #ffffff !important;
+    color: #FF5E5E !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+}
+
+/* Modo Oscuro */
+html[data-theme="dark"] .card-proveedor-exact {
+    background: #111C44 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+html[data-theme="dark"] .card-header-tint {
+    background-color: #1B254B !important;
+}
+
+html[data-theme="dark"] .card-header-title {
+    color: #FFFFFF !important;
+}
+
+html[data-theme="dark"] .badge-soft-purple {
+    background-color: rgba(127, 86, 217, 0.25) !important;
+    color: #C084FC !important;
+}
+
+html[data-theme="dark"] .badge-soft-blue {
+    background-color: rgba(47, 128, 237, 0.25) !important;
+    color: #60A5FA !important;
+}
+
+html[data-theme="dark"] .btn-custom-edit {
+    background: #111C44 !important;
+    border-color: #7F56D9 !important;
+    color: #C084FC !important;
+}
+
+html[data-theme="dark"] .btn-custom-delete {
+    background: #111C44 !important;
+    border-color: #FF5E5E !important;
+    color: #FF5E5E !important;
 }

@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GastoFacil - Historial de Pedidos</title>
+    <title>GastoFacil - Historial y Auditoría</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=4">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         (function () {
@@ -49,8 +49,8 @@
     <main class="main-content">
         <header class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="fw-bold mb-1">Historial de Pedidos</h2>
-                <p class="text-muted mb-0">Administra y revisa los registros de tus compras.</p>
+                <h2 class="fw-bold mb-1">Historial & Control</h2>
+                <p class="text-muted mb-0">Revisa los pedidos realizados y la bitácora de movimientos del sistema.</p>
             </div>
             <div class="d-flex gap-2 align-items-center">
                 <a href="pedidos.html" class="btn-header-gradient text-decoration-none">
@@ -62,58 +62,31 @@
             </div>
         </header>
 
+        <!-- Navegación por Pestañas (Tabs) -->
+        <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3">
+            <li class="nav-item">
+                <button class="btn btn-outline-primary active rounded-pill px-4" id="tabPedidos" onclick="cambiarVista('pedidos')">
+                    <i class="bi bi-receipt me-1"></i> Pedidos Registrados
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="btn btn-outline-secondary rounded-pill px-4" id="tabAuditoria" onclick="cambiarVista('auditoria')">
+                    <i class="bi bi-shield-check me-1"></i> Bitácora de Auditoría
+                </button>
+            </li>
+        </ul>
+
         <!-- Barra de Búsqueda -->
         <div class="d-flex gap-3 mb-4 flex-wrap">
             <div class="search-input-group flex-grow-1">
                 <i class="bi bi-search"></i>
                 <input type="text" id="inputBuscarHistorial" class="form-control"
-                    placeholder="Buscar pedido por proveedor o fecha...">
+                    placeholder="Buscar registros...">
             </div>
         </div>
 
-        <!-- Área Dinámica Principal: Se reemplazará con la tabla si existen pedidos -->
-        <div id="areaContenido">
-            <div id="emptyState" class="card border-0 shadow-sm p-5 text-center" style="border-radius: 20px; background: var(--bg-card);">
-                <div class="mb-4">
-                    <svg class="clipboard-bag-svg" width="220" height="150" viewBox="0 0 220 150" fill="none"
-                        xmlns="http://www.w3.org/2000/svg" style="display: block; margin: 0 auto;">
-                        <path d="M40 30 L42 35 L47 37 L42 39 L40 44 L38 39 L33 37 L38 35 Z" fill="#93C5FD" opacity="0.6" />
-                        <path d="M185 80 L186.5 83.5 L190 85 L186.5 86.5 L185 90 L183.5 86.5 L180 85 L183.5 83.5 Z"
-                            fill="#93C5FD" opacity="0.5" />
-                        <circle cx="140" cy="40" r="3" fill="#93C5FD" opacity="0.4" />
-                        <circle cx="65" cy="115" r="4" fill="#93C5FD" opacity="0.4" />
-                        <circle cx="110" cy="75" r="55" fill="#EFF6FF" />
-                        <g class="bag-group" transform="translate(10, 0)">
-                            <path d="M125 72 C125 55 140 55 140 72" stroke="#60A5FA" stroke-width="2.5"
-                                stroke-linecap="round" />
-                            <path
-                                d="M115 72 C115 70 117 68 120 68 H145 C148 68 150 70 150 72 L153 110 C153 113 151 115 148 115 H117 C114 115 112 113 112 110 Z"
-                                fill="#93C5FD" stroke="#3B82F6" stroke-width="1.5" />
-                        </g>
-                        <g class="clipboard-group" transform="translate(-10, 0)">
-                            <rect x="85" y="45" width="55" height="75" rx="8" fill="#3B82F6" />
-                            <rect x="90" y="52" width="45" height="63" rx="4" fill="#FFFFFF" />
-                            <path d="M102 40 C102 38 104 36 107 36 H118 C121 36 123 38 123 40 V45 H102 Z" fill="#93C5FD" />
-                            <rect x="108" y="38" width="9" height="3" rx="1.5" fill="#3B82F6" />
-                            <circle cx="106" cy="65" r="1.5" fill="#1D4ED8" />
-                            <circle cx="119" cy="65" r="1.5" fill="#1D4ED8" />
-                            <path d="M109 72 Q112.5 76 116 72" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" />
-                            <line x1="98" y1="84" x2="127" y2="84" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" />
-                            <line x1="98" y1="92" x2="127" y2="92" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" />
-                            <line x1="98" y1="100" x2="118" y2="100" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" />
-                        </g>
-                    </svg>
-                </div>
-                <h4 class="fw-bold text-dark mt-2 mb-2" style="font-size: 1.4rem;">Sin movimientos registrados</h4>
-                <p class="text-muted mb-4" style="font-size: 0.95rem;">Aún no hay pedidos en el historial.</p>
-
-                <div class="d-flex justify-content-center mb-3">
-                    <a href="pedidos.html" class="btn btn-outline-primary rounded-pill px-4 py-2 text-decoration-none fw-semibold">
-                        <i class="bi bi-plus-lg me-1"></i> Registrar mi primer pedido
-                    </a>
-                </div>
-            </div>
-        </div>
+        <!-- Área Dinámica Principal -->
+        <div id="areaContenido"></div>
     </main>
 
     <!-- Modal Editar Pedido -->
@@ -171,9 +144,10 @@
 
     <script>
         let listaPedidos = [];
+        let listaAuditoria = [];
         let listaProveedores = [];
+        let vistaActual = 'pedidos'; // 'pedidos' o 'auditoria'
 
-        // Evento de cierre de sesión unificado con SweetAlert2
         document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
             e.preventDefault();
             Swal.fire({
@@ -198,7 +172,24 @@
         document.addEventListener('DOMContentLoaded', async () => {
             await cargarProveedores();
             await cargarHistorialDirecto();
+            await cargarAuditoria();
         });
+
+        function cambiarVista(vista) {
+            vistaActual = vista;
+            const btnP = document.getElementById('tabPedidos');
+            const btnA = document.getElementById('tabAuditoria');
+
+            if (vista === 'pedidos') {
+                btnP.className = 'btn btn-outline-primary active rounded-pill px-4';
+                btnA.className = 'btn btn-outline-secondary rounded-pill px-4';
+                renderizarPedidos(listaPedidos);
+            } else {
+                btnA.className = 'btn btn-outline-primary active rounded-pill px-4';
+                btnP.className = 'btn btn-outline-secondary rounded-pill px-4';
+                renderizarAuditoria(listaAuditoria);
+            }
+        }
 
         async function cargarProveedores() {
             try {
@@ -222,26 +213,48 @@
 
                 if (res.ok) {
                     listaPedidos = await res.json();
-                    renderizarInterface(listaPedidos);
-                } else {
-                    console.error('El servidor Java respondió con estado:', res.status);
+                    if (vistaActual === 'pedidos') renderizarPedidos(listaPedidos);
                 }
             } catch (error) {
                 console.error('Error de red al conectar con /api/pedidos:', error);
             }
         }
 
-        function renderizarInterface(pedidos) {
+        async function cargarAuditoria() {
+            try {
+                const idTienda = localStorage.getItem('idTienda') || '1';
+                const res = await fetch(`http://localhost:8080/GastoFacilWeb/api/auditoria?idTienda=${idTienda}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Usuario-Id': String(idTienda)
+                    },
+                    credentials: 'include'
+                });
+
+                if (res.ok) {
+                    listaAuditoria = await res.json();
+                    if (vistaActual === 'auditoria') renderizarAuditoria(listaAuditoria);
+                }
+            } catch (error) {
+                console.error('Error de red al conectar con /api/auditoria:', error);
+            }
+        }
+
+        function renderizarPedidos(pedidos) {
             const area = document.getElementById('areaContenido');
 
             if (!pedidos || !Array.isArray(pedidos) || pedidos.length === 0) {
+                area.innerHTML = `
+                    <div class="card border-0 shadow-sm p-5 text-center" style="border-radius: 20px; background: var(--bg-card);">
+                        <h4 class="fw-bold text-dark mt-2 mb-2">Sin pedidos registrados</h4>
+                        <p class="text-muted mb-4">Aún no hay compras guardadas en la base de datos.</p>
+                    </div>`;
                 return;
             }
 
             const formatoMoneda = new Intl.NumberFormat('es-CO', {
-                style: 'currency',
-                currency: 'COP',
-                maximumFractionDigits: 0
+                style: 'currency', currency: 'COP', maximumFractionDigits: 0
             });
 
             let filasHtml = '';
@@ -265,8 +278,7 @@
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
 
             area.innerHTML = `
@@ -284,13 +296,60 @@
                                     <th class="text-end">ACCIONES</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                ${filasHtml}
-                            </tbody>
+                            <tbody>${filasHtml}</tbody>
                         </table>
                     </div>
-                </div>
-            `;
+                </div>`;
+        }
+
+        function renderizarAuditoria(auditoria) {
+            const area = document.getElementById('areaContenido');
+
+            if (!auditoria || !Array.isArray(auditoria) || auditoria.length === 0) {
+                area.innerHTML = `
+                    <div class="card border-0 shadow-sm p-5 text-center" style="border-radius: 20px; background: var(--bg-card);">
+                        <h4 class="fw-bold text-dark mt-2 mb-2">Sin movimientos auditados</h4>
+                        <p class="text-muted mb-4">No se han registrado acciones de crear, editar o eliminar en el sistema.</p>
+                    </div>`;
+                return;
+            }
+
+            let filasHtml = '';
+            auditoria.forEach(a => {
+                let badgeAccion = 'bg-secondary';
+                if (a.accion.toLowerCase().includes('crear') || a.accion.toLowerCase().includes('registro')) badgeAccion = 'bg-success';
+                else if (a.accion.toLowerCase().includes('editar') || a.accion.toLowerCase().includes('modificar')) badgeAccion = 'bg-warning text-dark';
+                else if (a.accion.toLowerCase().includes('eliminar')) badgeAccion = 'bg-danger';
+
+                filasHtml += `
+                    <tr>
+                        <td class="fw-bold">#${a.id}</td>
+                        <td class="fw-semibold">${a.usuario}</td>
+                        <td><span class="badge bg-info text-dark">${a.modulo}</span></td>
+                        <td><span class="badge ${badgeAccion}">${a.accion}</span></td>
+                        <td class="text-muted small">${a.descripcion}</td>
+                        <td class="small text-muted">${a.fechaHora}</td>
+                    </tr>`;
+            });
+
+            area.innerHTML = `
+                <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px; background: var(--bg-card);">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr class="text-muted small text-uppercase">
+                                    <th>ID</th>
+                                    <th>USUARIO</th>
+                                    <th>MÓDULO</th>
+                                    <th>ACCIÓN</th>
+                                    <th>DESCRIPCIÓN DEL CAMBIO</th>
+                                    <th>FECHA Y HORA</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasHtml}</tbody>
+                        </table>
+                    </div>
+                </div>`;
         }
 
         function abrirModalEditarPedido(id, idProv, fecha, desc, metodo, valorTotal) {
@@ -340,7 +399,6 @@
                     Swal.fire({
                         icon: 'success',
                         title: '¡Actualizado!',
-                        text: 'El pedido fue modificado correctamente.',
                         timer: 1500,
                         showConfirmButton: false
                     });
@@ -349,7 +407,8 @@
                     const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                     modal.hide();
 
-                    cargarHistorialDirecto();
+                    await cargarHistorialDirecto();
+                    await cargarAuditoria();
                 }
             } catch (err) {
                 Swal.fire('Error', 'No se pudo actualizar el registro', 'error');
@@ -359,11 +418,10 @@
         async function eliminarPedido(id) {
             const confirmacion = await Swal.fire({
                 title: '¿Eliminar este pedido?',
-                text: "Esta acción descontará el monto del Dashboard inmediatamente.",
+                text: "Esta acción se registrará en la auditoría del sistema.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmColor: '#d33',
-                cancelColor: '#3085d6',
+                confirmButtonColor: '#d33',
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar'
             });
@@ -379,8 +437,9 @@
                     });
 
                     if (res.ok) {
-                        Swal.fire('Eliminado', 'El pedido fue eliminado del historial.', 'success');
-                        cargarHistorialDirecto();
+                        Swal.fire('Eliminado', 'El pedido fue eliminado.', 'success');
+                        await cargarHistorialDirecto();
+                        await cargarAuditoria();
                     }
                 } catch (err) {
                     Swal.fire('Error', 'No se pudo eliminar el registro', 'error');
@@ -390,12 +449,21 @@
 
         document.getElementById('inputBuscarHistorial').addEventListener('input', (e) => {
             const busqueda = e.target.value.toLowerCase();
-            const filtrados = listaPedidos.filter(p =>
-                (p.proveedor && p.proveedor.toLowerCase().includes(busqueda)) ||
-                (p.descripcion && p.descripcion.toLowerCase().includes(busqueda)) ||
-                (p.fecha && p.fecha.includes(busqueda))
-            );
-            renderizarInterface(filtrados);
+            if (vistaActual === 'pedidos') {
+                const filtrados = listaPedidos.filter(p =>
+                    (p.proveedor && p.proveedor.toLowerCase().includes(busqueda)) ||
+                    (p.descripcion && p.descripcion.toLowerCase().includes(busqueda)) ||
+                    (p.fecha && p.fecha.includes(busqueda))
+                );
+                renderizarPedidos(filtrados);
+            } else {
+                const filtrados = listaAuditoria.filter(a =>
+                    (a.usuario && a.usuario.toLowerCase().includes(busqueda)) ||
+                    (a.descripcion && a.descripcion.toLowerCase().includes(busqueda)) ||
+                    (a.modulo && a.modulo.toLowerCase().includes(busqueda))
+                );
+                renderizarAuditoria(filtrados);
+            }
         });
     </script>
 </body>
