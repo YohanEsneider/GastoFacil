@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GastoFacil - Historial y Auditoría</title>
+    <title>GastoFacil - Historial & Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         (function () {
@@ -24,9 +23,7 @@
     <aside class="sidebar">
         <div class="p-4 mb-4">
             <div class="d-flex align-items-center">
-                <div class="bg-primary p-2 rounded-3 me-2 shadow-sm">
-                    <i class="bi bi-shop-window text-white fs-4"></i>
-                </div>
+                <div class="bg-primary p-2 rounded-3 me-2 shadow-sm"><i class="bi bi-shop-window text-white fs-4"></i></div>
                 <h4 class="fw-bold mb-0" style="color: var(--primary-blue);">GastoFacil</h4>
             </div>
         </div>
@@ -34,8 +31,8 @@
         <nav class="nav flex-column">
             <a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a>
             <a class="nav-link" href="pedidos.html"><i class="bi bi-plus-circle"></i> Nuevo Pedido</a>
-            <a class="nav-link active" href="historial.html"><i class="bi bi-journal-text-fill"></i> Historial</a>
-            <a class="nav-link" href="proveedores.html"><i class="bi bi-people"></i> Proveedores</a>
+            <a class="nav-link active" href="historial.html"><i class="bi bi-journal-text"></i> Historial</a>
+            <a class="nav-link" href="proveedores.html"><i class="bi bi-people-fill"></i> Proveedores</a>
             <a class="nav-link" href="reportes.html"><i class="bi bi-bar-chart-line"></i> Reportes</a>
         </nav>
 
@@ -50,11 +47,11 @@
         <header class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold mb-1">Historial & Control</h2>
-                <p class="text-muted mb-0">Revisa los pedidos realizados y la bitácora de movimientos del sistema.</p>
+                <p class="text-muted mb-0">Revisa los pedidos realizados y la bitácora de auditoría.</p>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-                <a href="pedidos.html" class="btn-header-gradient text-decoration-none">
-                    <i class="bi bi-plus-lg"></i> Nuevo Registro
+            <div class="d-flex align-items-center gap-3">
+                <a href="pedidos.html" class="btn btn-primary fw-semibold px-4 py-2 shadow-sm rounded-3">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Registro
                 </a>
                 <button id="theme-toggle" class="btn-theme-toggle" aria-label="Toggle theme">
                     <i class="bi bi-sun-fill"></i>
@@ -62,73 +59,112 @@
             </div>
         </header>
 
-        <!-- Navegación por Pestañas (Tabs) -->
-        <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3">
-            <li class="nav-item">
-                <button class="btn btn-outline-primary active rounded-pill px-4" id="tabPedidos" onclick="cambiarVista('pedidos')">
-                    <i class="bi bi-receipt me-1"></i> Pedidos Registrados
+        <!-- Navegación por pestañas -->
+        <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active rounded-3 px-4 fw-bold" id="pills-pedidos-tab" data-bs-toggle="pill" data-bs-target="#pills-pedidos" type="button" role="tab">
+                    <i class="bi bi-cart-check me-2"></i>Pedidos Registrados
                 </button>
             </li>
-            <li class="nav-item">
-                <button class="btn btn-outline-secondary rounded-pill px-4" id="tabAuditoria" onclick="cambiarVista('auditoria')">
-                    <i class="bi bi-shield-check me-1"></i> Bitácora de Auditoría
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-3 px-4 fw-bold" id="pills-auditoria-tab" data-bs-toggle="pill" data-bs-target="#pills-auditoria" type="button" role="tab">
+                    <i class="bi bi-shield-check me-2"></i>Bitácora de Auditoría
                 </button>
             </li>
         </ul>
 
-        <!-- Barra de Búsqueda -->
-        <div class="d-flex gap-3 mb-4 flex-wrap">
-            <div class="search-input-group flex-grow-1">
-                <i class="bi bi-search"></i>
-                <input type="text" id="inputBuscarHistorial" class="form-control"
-                    placeholder="Buscar registros...">
+        <div class="tab-content" id="pills-tabContent">
+            <!-- TAB 1: PEDIDOS -->
+            <div class="tab-pane fade show active" id="pills-pedidos" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-4 p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>FECHA</th>
+                                    <th>PROVEEDOR</th>
+                                    <th>RESUMEN / DETALLE</th>
+                                    <th>MÉTODO PAGO</th>
+                                    <th>VALOR TOTAL</th>
+                                    <th class="text-center">ACCIONES</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaPedidos">
+                                <!-- Carga dinámica -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: BITÁCORA DE AUDITORÍA -->
+            <div class="tab-pane fade" id="pills-auditoria" role="tabpanel">
+                <div class="card border-0 shadow-sm rounded-4 p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>FECHA Y HORA</th>
+                                    <th>USUARIO</th>
+                                    <th>MÓDULO</th>
+                                    <th>ACCIÓN</th>
+                                    <th>DESCRIPCIÓN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaAuditoria">
+                                <!-- Carga dinámica -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- Área Dinámica Principal -->
-        <div id="areaContenido"></div>
     </main>
 
     <!-- Modal Editar Pedido -->
     <div class="modal fade" id="modalEditarPedido" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg" style="border-radius: 16px;">
-                <div class="modal-header border-0">
-                    <h5 class="fw-bold">Editar Registro de Pedido</h5>
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold modal-title">Editar Registro de Pedido</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="formEditarPedido">
-                        <input type="hidden" id="editIdPedido">
+                        <input type="hidden" id="editPedidoId" value="0">
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Proveedor *</label>
-                            <select id="editSelectProveedor" class="form-select" required></select>
+                            <label class="form-label text-uppercase small fw-bold text-muted">PROVEEDOR *</label>
+                            <select id="editProveedor" class="form-select py-2" required></select>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Fecha de Compra *</label>
-                            <input type="date" id="editFecha" class="form-control" required>
+                            <label class="form-label text-uppercase small fw-bold text-muted">FECHA DE COMPRA *</label>
+                            <input type="date" id="editFecha" class="form-control py-2" required>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Resumen / Detalle</label>
-                            <input type="text" id="editDescripcion" class="form-control" placeholder="Ej: 1x Cerveza">
+                            <label class="form-label text-uppercase small fw-bold text-muted">RESUMEN / DETALLE</label>
+                            <input type="text" id="editDescripcion" class="form-control py-2" placeholder="Ej: 1x Bgmanzana">
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Método de Pago</label>
-                            <select id="editMetodo" class="form-select">
+                            <label class="form-label text-uppercase small fw-bold text-muted">MÉTODO DE PAGO</label>
+                            <select id="editMetodoPago" class="form-select py-2">
                                 <option value="Efectivo">Efectivo</option>
-                                <option value="Transferencia">Transferencia</option>
-                                <option value="Crédito">Crédito</option>
+                                <option value="Transferencia / Nequi">Transferencia / Nequi</option>
+                                <option value="Crédito / Fiado">Crédito / Fiado</option>
+                                <option value="Tarjeta Debit/Credit">Tarjeta Debit/Credit</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Valor Total ($) *</label>
-                            <input type="number" step="0.01" id="editValorTotal" class="form-control" required>
+
+                        <div class="mb-4">
+                            <label class="form-label text-uppercase small fw-bold text-muted">VALOR TOTAL ($) *</label>
+                            <input type="number" step="0.01" id="editValorTotal" class="form-control py-2" required>
                         </div>
 
-                        <div class="d-grid mt-4">
-                            <button type="submit" id="btnGuardarEdit" class="btn text-white py-3 fw-bold"
-                                style="background: linear-gradient(90deg, #2F80ED 0%, #7F56D9 100%); border-radius: 12px; border: none;">
+                        <div class="d-grid">
+                            <button type="submit" id="btnGuardarEditPedido" class="btn btn-primary py-2.5 fw-bold shadow-sm rounded-3">
                                 Guardar Cambios
                             </button>
                         </div>
@@ -143,16 +179,22 @@
     <script src="api.js"></script>
 
     <script>
-        let listaPedidos = [];
-        let listaAuditoria = [];
-        let listaProveedores = [];
-        let vistaActual = 'pedidos'; // 'pedidos' o 'auditoria'
+        let listaPedidosGlobal = [];
+        let listaProveedoresGlobal = [];
+        let modalEditarBs = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            modalEditarBs = new bootstrap.Modal(document.getElementById('modalEditarPedido'));
+            await cargarProveedoresSelect();
+            await cargarPedidos();
+            await cargarAuditoria();
+        });
 
         document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
             e.preventDefault();
             Swal.fire({
                 title: '¿Cerrar sesión?',
-                text: 'Tendrás que ingresar tus credenciales nuevamente para acceder.',
+                text: 'Tendrás que ingresar tus credenciales nuevamente.',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#4318FF',
@@ -169,302 +211,200 @@
             });
         });
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await cargarProveedores();
-            await cargarHistorialDirecto();
-            await cargarAuditoria();
-        });
-
-        function cambiarVista(vista) {
-            vistaActual = vista;
-            const btnP = document.getElementById('tabPedidos');
-            const btnA = document.getElementById('tabAuditoria');
-
-            if (vista === 'pedidos') {
-                btnP.className = 'btn btn-outline-primary active rounded-pill px-4';
-                btnA.className = 'btn btn-outline-secondary rounded-pill px-4';
-                renderizarPedidos(listaPedidos);
-            } else {
-                btnA.className = 'btn btn-outline-primary active rounded-pill px-4';
-                btnP.className = 'btn btn-outline-secondary rounded-pill px-4';
-                renderizarAuditoria(listaAuditoria);
+        async function cargarProveedoresSelect() {
+            try {
+                listaProveedoresGlobal = await API.obtenerProveedores();
+                const select = document.getElementById('editProveedor');
+                select.innerHTML = '<option value="">Seleccione un proveedor</option>';
+                listaProveedoresGlobal.forEach(p => {
+                    const idProv = p.idProveedor || p.id_proveedor || p.id;
+                    select.innerHTML += `<option value="${idProv}">${p.nombre}</option>`;
+                });
+            } catch (e) {
+                console.error("Error al cargar proveedores en select:", e);
             }
         }
 
-        async function cargarProveedores() {
+        async function cargarPedidos() {
             try {
-                if (typeof API !== 'undefined' && API.obtenerProveedores) {
-                    listaProveedores = await API.obtenerProveedores();
-                }
-            } catch (e) { console.error('Error proveedores:', e); }
-        }
+                listaPedidosGlobal = await API.obtenerPedidos();
+                const tbody = document.getElementById('tablaPedidos');
+                tbody.innerHTML = '';
 
-        async function cargarHistorialDirecto() {
-            try {
-                const idTienda = localStorage.getItem('idTienda') || '1';
-                const res = await fetch('http://localhost:8080/GastoFacilWeb/api/pedidos', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Usuario-Id': String(idTienda)
-                    },
-                    credentials: 'include'
+                if (!listaPedidosGlobal || listaPedidosGlobal.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No hay pedidos registrados.</td></tr>`;
+                    return;
+                }
+
+                listaPedidosGlobal.forEach(p => {
+                    const idPed = p.idPedido || p.id_pedido || p.id || 0;
+                    const fecha = p.fecha || p.fecha_pedido || '';
+                    const prov = p.proveedor || 'General';
+                    const desc = p.descripcion || p.resumen || '-';
+                    const metodo = p.metodoPago || p.metodo_pago || 'Efectivo';
+                    const total = parseFloat(p.valorTotal || p.valor_total || 0);
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="fw-semibold">${fecha}</td>
+                            <td><span class="badge bg-light text-primary border px-3 py-2 fs-6">${prov}</span></td>
+                            <td>${desc}</td>
+                            <td><span class="badge bg-light text-dark border">${metodo}</span></td>
+                            <td class="fw-bold text-success">$ ${total.toLocaleString('es-CO')}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-link text-primary me-2" onclick="abrirModalEditarPedido(${idPed})">
+                                    <i class="bi bi-pencil fs-5"></i>
+                                </button>
+                                <button class="btn btn-sm btn-link text-danger" onclick="eliminarPedido(${idPed})">
+                                    <i class="bi bi-trash fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>`;
                 });
-
-                if (res.ok) {
-                    listaPedidos = await res.json();
-                    if (vistaActual === 'pedidos') renderizarPedidos(listaPedidos);
-                }
-            } catch (error) {
-                console.error('Error de red al conectar con /api/pedidos:', error);
+            } catch (e) {
+                console.error("Error al cargar pedidos:", e);
             }
         }
 
         async function cargarAuditoria() {
             try {
-                const idTienda = localStorage.getItem('idTienda') || '1';
-                const res = await fetch(`http://localhost:8080/GastoFacilWeb/api/auditoria?idTienda=${idTienda}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Usuario-Id': String(idTienda)
-                    },
-                    credentials: 'include'
-                });
+                const logs = await API.obtenerHistorialAuditoria();
+                const tbody = document.getElementById('tablaAuditoria');
+                tbody.innerHTML = '';
 
-                if (res.ok) {
-                    listaAuditoria = await res.json();
-                    if (vistaActual === 'auditoria') renderizarAuditoria(listaAuditoria);
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No hay registros de auditoría aún.</td></tr>`;
+                    return;
                 }
-            } catch (error) {
-                console.error('Error de red al conectar con /api/auditoria:', error);
+
+                logs.forEach(l => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="small text-muted">${l.fechaHora || ''}</td>
+                            <td class="fw-semibold">${l.usuario || 'Sistema'}</td>
+                            <td><span class="badge bg-light text-dark border">${l.modulo || 'General'}</span></td>
+                            <td><span class="badge bg-primary-subtle text-primary fw-bold">${l.accion || ''}</span></td>
+                            <td class="small">${l.descripcion || ''}</td>
+                        </tr>`;
+                });
+            } catch (e) {
+                console.error("Error al cargar auditoría:", e);
             }
         }
 
-        function renderizarPedidos(pedidos) {
-            const area = document.getElementById('areaContenido');
+        function abrirModalEditarPedido(id) {
+            if (!id || id === 0) return;
 
-            if (!pedidos || !Array.isArray(pedidos) || pedidos.length === 0) {
-                area.innerHTML = `
-                    <div class="card border-0 shadow-sm p-5 text-center" style="border-radius: 20px; background: var(--bg-card);">
-                        <h4 class="fw-bold text-dark mt-2 mb-2">Sin pedidos registrados</h4>
-                        <p class="text-muted mb-4">Aún no hay compras guardadas en la base de datos.</p>
-                    </div>`;
-                return;
+            const ped = listaPedidosGlobal.find(p => 
+                (p.idPedido && p.idPedido == id) || 
+                (p.id_pedido && p.id_pedido == id) || 
+                (p.id && p.id == id)
+            );
+
+            if (!ped) return;
+
+            document.getElementById('editPedidoId').value = id;
+            
+            // Asignar proveedor seleccionado
+            const idProv = ped.idProveedor || ped.id_proveedor || '';
+            document.getElementById('editProveedor').value = idProv;
+
+            // Formatear la fecha para el input tipo date (YYYY-MM-DD)
+            let fechaStr = ped.fecha || ped.fecha_pedido || '';
+            if (fechaStr.includes('/')) {
+                const partes = fechaStr.split('/');
+                if (partes.length === 3) {
+                    fechaStr = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+                }
             }
+            document.getElementById('editFecha').value = fechaStr;
 
-            const formatoMoneda = new Intl.NumberFormat('es-CO', {
-                style: 'currency', currency: 'COP', maximumFractionDigits: 0
-            });
+            document.getElementById('editDescripcion').value = ped.descripcion || ped.resumen || '';
+            document.getElementById('editMetodoPago').value = ped.metodoPago || ped.metodo_pago || 'Efectivo';
+            
+            const total = parseFloat(ped.valorTotal || ped.valor_total || 0);
+            document.getElementById('editValorTotal').value = total;
 
-            let filasHtml = '';
-            pedidos.forEach(p => {
-                const descSegura = p.descripcion ? p.descripcion.replace(/'/g, "\\'") : '';
-                filasHtml += `
-                    <tr>
-                        <td class="fw-bold">#${p.idPedido}</td>
-                        <td>${p.fecha || 'N/A'}</td>
-                        <td class="fw-semibold text-primary">${p.proveedor}</td>
-                        <td class="text-muted small">${p.descripcion || 'Sin detalle'}</td>
-                        <td><span class="badge bg-light text-dark border">${p.metodoPago}</span></td>
-                        <td class="fw-bold text-success">${formatoMoneda.format(p.valorTotal)}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary border-0 me-1" title="Editar" 
-                                onclick="abrirModalEditarPedido(${p.idPedido}, ${p.idProveedor}, '${p.fecha}', '${descSegura}', '${p.metodoPago}', ${p.valorTotal})">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger border-0" title="Eliminar" 
-                                onclick="eliminarPedido(${p.idPedido})">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
-                        </td>
-                    </tr>`;
-            });
-
-            area.innerHTML = `
-                <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px; background: var(--bg-card);">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr class="text-muted small text-uppercase">
-                                    <th># ID</th>
-                                    <th>FECHA</th>
-                                    <th>PROVEEDOR</th>
-                                    <th>RESUMEN / DETALLE</th>
-                                    <th>MÉTODO PAGO</th>
-                                    <th>VALOR TOTAL</th>
-                                    <th class="text-end">ACCIONES</th>
-                                </tr>
-                            </thead>
-                            <tbody>${filasHtml}</tbody>
-                        </table>
-                    </div>
-                </div>`;
+            modalEditarBs.show();
         }
 
-        function renderizarAuditoria(auditoria) {
-            const area = document.getElementById('areaContenido');
-
-            if (!auditoria || !Array.isArray(auditoria) || auditoria.length === 0) {
-                area.innerHTML = `
-                    <div class="card border-0 shadow-sm p-5 text-center" style="border-radius: 20px; background: var(--bg-card);">
-                        <h4 class="fw-bold text-dark mt-2 mb-2">Sin movimientos auditados</h4>
-                        <p class="text-muted mb-4">No se han registrado acciones de crear, editar o eliminar en el sistema.</p>
-                    </div>`;
-                return;
-            }
-
-            let filasHtml = '';
-            auditoria.forEach(a => {
-                let badgeAccion = 'bg-secondary';
-                if (a.accion.toLowerCase().includes('crear') || a.accion.toLowerCase().includes('registro')) badgeAccion = 'bg-success';
-                else if (a.accion.toLowerCase().includes('editar') || a.accion.toLowerCase().includes('modificar')) badgeAccion = 'bg-warning text-dark';
-                else if (a.accion.toLowerCase().includes('eliminar')) badgeAccion = 'bg-danger';
-
-                filasHtml += `
-                    <tr>
-                        <td class="fw-bold">#${a.id}</td>
-                        <td class="fw-semibold">${a.usuario}</td>
-                        <td><span class="badge bg-info text-dark">${a.modulo}</span></td>
-                        <td><span class="badge ${badgeAccion}">${a.accion}</span></td>
-                        <td class="text-muted small">${a.descripcion}</td>
-                        <td class="small text-muted">${a.fechaHora}</td>
-                    </tr>`;
-            });
-
-            area.innerHTML = `
-                <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px; background: var(--bg-card);">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr class="text-muted small text-uppercase">
-                                    <th>ID</th>
-                                    <th>USUARIO</th>
-                                    <th>MÓDULO</th>
-                                    <th>ACCIÓN</th>
-                                    <th>DESCRIPCIÓN DEL CAMBIO</th>
-                                    <th>FECHA Y HORA</th>
-                                </tr>
-                            </thead>
-                            <tbody>${filasHtml}</tbody>
-                        </table>
-                    </div>
-                </div>`;
-        }
-
-        function abrirModalEditarPedido(id, idProv, fecha, desc, metodo, valorTotal) {
-            document.getElementById('editIdPedido').value = id;
-            document.getElementById('editFecha').value = fecha;
-            document.getElementById('editDescripcion').value = desc;
-            document.getElementById('editMetodo').value = metodo;
-            document.getElementById('editValorTotal').value = valorTotal;
-
-            const selectProv = document.getElementById('editSelectProveedor');
-            selectProv.innerHTML = '';
-            listaProveedores.forEach(p => {
-                const idP = p.idProveedor || p.id_proveedor || p.id;
-                const selected = idP == idProv ? 'selected' : '';
-                selectProv.innerHTML += `<option value="${idP}" ${selected}>${p.nombre}</option>`;
-            });
-
-            const modalEl = document.getElementById('modalEditarPedido');
-            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modal.show();
-        }
-
-        document.getElementById('formEditarPedido').addEventListener('submit', async (e) => {
+        document.getElementById('formEditarPedido').addEventListener('submit', async function (e) {
             e.preventDefault();
 
+            const btn = document.getElementById('btnGuardarEditPedido');
+            btn.disabled = true;
+
+            const idVal = parseInt(document.getElementById('editPedidoId').value) || 0;
+            const idProvVal = parseInt(document.getElementById('editProveedor').value) || 1;
+            const valorTotalVal = parseFloat(document.getElementById('editValorTotal').value) || 0;
+
             const payload = {
-                idPedido: parseInt(document.getElementById('editIdPedido').value),
-                idProveedor: parseInt(document.getElementById('editSelectProveedor').value),
+                idPedido: idVal,
+                id_pedido: idVal,
+                idProveedor: idProvVal,
+                id_proveedor: idProvVal,
                 fecha: document.getElementById('editFecha').value,
+                fecha_pedido: document.getElementById('editFecha').value,
                 descripcion: document.getElementById('editDescripcion').value.trim(),
-                metodoPago: document.getElementById('editMetodo').value,
-                valorTotal: parseFloat(document.getElementById('editValorTotal').value)
+                resumen: document.getElementById('editDescripcion').value.trim(),
+                metodoPago: document.getElementById('editMetodoPago').value,
+                metodo_pago: document.getElementById('editMetodoPago').value,
+                valorTotal: valorTotalVal,
+                valor_total: valorTotalVal
             };
 
             try {
-                const res = await fetch('http://localhost:8080/GastoFacilWeb/api/pedidos', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Usuario-Id': localStorage.getItem('idTienda') || '1'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
+                const res = await API.actualizarPedido(payload);
+                if (res && (res.estatus === "Exitoso" || res.status === "OK")) {
+                    modalEditarBs.hide();
                     Swal.fire({
                         icon: 'success',
-                        title: '¡Actualizado!',
+                        title: '¡Pedido Actualizado!',
                         timer: 1500,
                         showConfirmButton: false
                     });
-
-                    const modalEl = document.getElementById('modalEditarPedido');
-                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                    modal.hide();
-
-                    await cargarHistorialDirecto();
+                    await cargarPedidos();
                     await cargarAuditoria();
+                } else {
+                    Swal.fire('Error', res.mensaje || 'No se pudo actualizar el pedido', 'error');
                 }
             } catch (err) {
-                Swal.fire('Error', 'No se pudo actualizar el registro', 'error');
+                console.error("Error al actualizar pedido:", err);
+                Swal.fire('Error', err.message || 'Error al conectar con el servidor', 'error');
+            } finally {
+                btn.disabled = false;
             }
         });
 
         async function eliminarPedido(id) {
-            const confirmacion = await Swal.fire({
-                title: '¿Eliminar este pedido?',
-                text: "Esta acción se registrará en la auditoría del sistema.",
+            if (!id || id === 0) return;
+
+            const result = await Swal.fire({
+                title: '¿Eliminar registro de pedido?',
+                text: 'Esta acción no se puede deshacer.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
+                cancelButtonColor: '#8F9BBA',
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar'
             });
 
-            if (confirmacion.isConfirmed) {
+            if (result.isConfirmed) {
                 try {
-                    const res = await fetch(`http://localhost:8080/GastoFacilWeb/api/pedidos?id=${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-Usuario-Id': localStorage.getItem('idTienda') || '1'
-                        },
-                        credentials: 'include'
-                    });
-
-                    if (res.ok) {
-                        Swal.fire('Eliminado', 'El pedido fue eliminado.', 'success');
-                        await cargarHistorialDirecto();
+                    const res = await API.eliminarPedido(id);
+                    if (res && (res.estatus === "Exitoso" || res.status === "OK")) {
+                        Swal.fire('Eliminado', 'El pedido fue eliminado del sistema.', 'success');
+                        await cargarPedidos();
                         await cargarAuditoria();
+                    } else {
+                        Swal.fire('Error', res.mensaje || 'No se pudo eliminar el pedido.', 'error');
                     }
-                } catch (err) {
-                    Swal.fire('Error', 'No se pudo eliminar el registro', 'error');
+                } catch (e) {
+                    Swal.fire('Error', 'No se pudo completar la operación.', 'error');
                 }
             }
         }
-
-        document.getElementById('inputBuscarHistorial').addEventListener('input', (e) => {
-            const busqueda = e.target.value.toLowerCase();
-            if (vistaActual === 'pedidos') {
-                const filtrados = listaPedidos.filter(p =>
-                    (p.proveedor && p.proveedor.toLowerCase().includes(busqueda)) ||
-                    (p.descripcion && p.descripcion.toLowerCase().includes(busqueda)) ||
-                    (p.fecha && p.fecha.includes(busqueda))
-                );
-                renderizarPedidos(filtrados);
-            } else {
-                const filtrados = listaAuditoria.filter(a =>
-                    (a.usuario && a.usuario.toLowerCase().includes(busqueda)) ||
-                    (a.descripcion && a.descripcion.toLowerCase().includes(busqueda)) ||
-                    (a.modulo && a.modulo.toLowerCase().includes(busqueda))
-                );
-                renderizarAuditoria(filtrados);
-            }
-        });
     </script>
 </body>
 

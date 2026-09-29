@@ -65,12 +65,7 @@
         </button>
     </header>
 
-    <!-- Alerta dinámica de estado del servidor -->
-    <div id="bannerErrorBackend" class="alert alert-warning border-0 shadow-sm mb-4 d-none" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> Backend no detectado. Para actualizar en tiempo real, inicia tu servidor Tomcat ejecutando GastoFacilWeb.
-    </div>
-
-    <!-- Fila 1: Gasto Total Card (Large size) -->
+    <!-- Fila 1: Gasto Total Card -->
     <div class="row g-4 mb-4">
         <div class="col-12">
             <div class="card-gasto-total d-flex align-items-center justify-content-between">
@@ -87,7 +82,6 @@
                     <h1 class="fw-bold mb-0 text-dark" id="gastoTotalMes" style="font-size: 3rem; letter-spacing: -1px;">$0</h1>
                 </div>
                 <div class="d-none d-sm-block">
-                    <!-- SVG Wallet Illustration -->
                     <svg class="wallet-svg" width="180" height="130" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="130" cy="30" r="16" fill="#e0f2fe" opacity="0.5"/>
                         <circle cx="145" cy="50" r="6" fill="#e0f2fe" opacity="0.8"/>
@@ -122,7 +116,7 @@
                 <h6 class="text-muted mb-1 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">Pedidos Registrados</h6>
                 <h2 class="fw-bold mb-0 text-dark" id="totalPedidos" style="font-size: 2.2rem;">0</h2>
                 <div class="badge-pill-trend badge-pill-trend-green">
-                    <i class="bi bi-graph-up-arrow"></i> En la base de datos
+                    <i class="bi bi-graph-up-arrow"></i> En tu tienda
                 </div>
             </div>
         </div>
@@ -182,23 +176,14 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
-        // 1. Recuperar contexto de sesión activo
-        const sesionStr = localStorage.getItem('usuarioSesion');
-        let nombreUser = localStorage.getItem('nombreUsuario') || 'Usuario';
-
-        if (sesionStr) {
-            try {
-                const sesionObj = JSON.parse(sesionStr);
-                nombreUser = sesionObj.usuario || sesionObj.nombreUsuario || nombreUser;
-            } catch (e) {}
-        }
-
+        // 1. Obtener datos de sesión
+        const nombreUser = localStorage.getItem('nombreUsuario') || 'Usuario';
         const elSaludo = document.getElementById('saludoUsuario');
         if (elSaludo) {
             elSaludo.textContent = `¡Hola de nuevo, ${nombreUser}! 👋`;
         }
 
-        // 2. Cargar métricas en tiempo real
+        // 2. Cargar métricas aisladas por tienda
         await cargarMetricas();
     });
 
@@ -206,23 +191,30 @@
         try {
             const data = await API.obtenerDashboard();
 
-            if (data) {
-                const formatoMoneda = new Intl.NumberFormat('es-CO', {
-                    style: 'currency',
-                    currency: 'COP',
-                    maximumFractionDigits: 0
-                });
+            const formatoMoneda = new Intl.NumberFormat('es-CO', {
+                style: 'currency',
+                currency: 'COP',
+                maximumFractionDigits: 0
+            });
 
+            if (data) {
                 document.getElementById('gastoTotalMes').textContent = formatoMoneda.format(data.gastosMes || 0);
                 document.getElementById('totalPedidos').textContent = data.totalPedidos || 0;
                 document.getElementById('totalProveedores').textContent = data.totalProveedores || 0;
+            } else {
+                // Estado por defecto en ceros
+                document.getElementById('gastoTotalMes').textContent = "$0";
+                document.getElementById('totalPedidos').textContent = "0";
+                document.getElementById('totalProveedores').textContent = "0";
             }
         } catch (error) {
-            console.error('Error silencioso al sincronizar dashboard:', error);
+            console.error('Error al sincronizar dashboard:', error);
+            document.getElementById('gastoTotalMes').textContent = "$0";
+            document.getElementById('totalPedidos').textContent = "0";
+            document.getElementById('totalProveedores').textContent = "0";
         }
     }
 
-    // Modal mejorado de Cierre de Sesión con SweetAlert2
     document.getElementById('btnCerrarSesion').addEventListener('click', function (e) {
         e.preventDefault();
         Swal.fire({

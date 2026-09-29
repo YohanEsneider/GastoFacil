@@ -1,51 +1,44 @@
 // URL Base del servidor Tomcat en NetBeans
 const BASE_URL = 'http://localhost:8080/GastoFacilWeb';
 
-// Función auxiliar para construir encabezados con autenticación e id_tienda
-const getHeaders = (extraHeaders = {}) => {
-    let idTienda = localStorage.getItem('idTienda');
-
-    // Recupera idTienda del objeto de sesión si no existe la clave individual
-    if (!idTienda || idTienda === 'null' || idTienda === 'undefined') {
-        const idUsuario = localStorage.getItem('idUsuario');
-        if (idUsuario && idUsuario !== 'null') {
-            idTienda = idUsuario;
-        } else {
-            const sesionStr = localStorage.getItem('usuarioSesion');
-            if (sesionStr) {
-                try {
-                    const sesion = JSON.parse(sesionStr);
-                    idTienda = sesion.idTienda || sesion.id_tienda || sesion.idUsuario || sesion.id_usuario;
-                } catch (e) {
-                    idTienda = null;
-                }
-            }
-        }
+// Recupera el ID de tienda activo
+const getActiveStoreId = () => {
+    let idT = localStorage.getItem('idTienda');
+    if (!idT || idT === 'null' || idT === 'undefined' || idT === '0') {
+        idT = localStorage.getItem('idUsuario');
     }
+    if (!idT || idT === 'null' || idT === 'undefined' || idT === '0') {
+        try {
+            const sesion = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
+            idT = sesion.idTienda || sesion.id_tienda || sesion.idUsuario || sesion.id_usuario;
+        } catch (e) {}
+    }
+    return String(idT || '0');
+};
 
+const getHeaders = (extraHeaders = {}) => {
+    const storeId = getActiveStoreId();
     return {
         'Content-Type': 'application/json',
-        'X-Usuario-Id': String(idTienda || ''),
+        'X-Usuario-Id': storeId,
+        'idTienda': storeId,
         ...extraHeaders
     };
 };
 
 const API = {
-    // 0. Comprobar si el servidor Tomcat está encendido
     verificarConexion: async () => {
         try {
-            const res = await fetch(`${BASE_URL}/api/dashboard`, { 
+            const storeId = getActiveStoreId();
+            const res = await fetch(`${BASE_URL}/api/dashboard?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
                 credentials: 'include'
             });
             return res.ok;
-        } catch (error) {
-            return false;
-        }
+        } catch (error) { return false; }
     },
 
-    // 1. Autenticación / Login
     login: async (usuario, password) => {
         try {
             const res = await fetch(`${BASE_URL}/api/login`, {
@@ -56,15 +49,14 @@ const API = {
             });
 
             const data = await res.json();
+            if (!res.ok) throw new Error(data.mensaje || "Credenciales inválidas");
 
-            if (!res.ok) {
-                throw new Error(data.mensaje || "Credenciales inválidas");
-            }
-
-            // Almacenar el contexto de sesión único para el usuario logueado
-            const idUsuarioFinal = data.idUsuario || data.id_usuario || data.id;
+            const idUsuarioFinal = data.idUsuario || data.id_usuario || data.id || 0;
             const idTiendaFinal = data.idTienda || data.id_tienda || idUsuarioFinal;
-            const nombreFinal = data.usuario || data.nombreUsuario || data.nombre || 'Usuario';
+            const nombreFinal = data.nombreUsuario || data.usuario || data.nombre || 'Usuario';
+
+            localStorage.clear();
+            sessionStorage.clear();
 
             localStorage.setItem('idTienda', String(idTiendaFinal));
             localStorage.setItem('idUsuario', String(idUsuarioFinal));
@@ -78,7 +70,6 @@ const API = {
         }
     },
 
-    // 2. Registro de Usuario
     registro: async (datosUsuario) => {
         try {
             const res = await fetch(`${BASE_URL}/api/registro`, {
@@ -94,10 +85,10 @@ const API = {
         }
     },
 
-    // 3. Obtener Proveedores
     obtenerProveedores: async () => {
         try {
-            const res = await fetch(`${BASE_URL}/api/proveedores`, { 
+            const storeId = getActiveStoreId();
+            const res = await fetch(`${BASE_URL}/api/proveedores?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
                 credentials: 'include'
@@ -105,102 +96,114 @@ const API = {
             if (!res.ok) return [];
             const data = await res.json();
             return Array.isArray(data) ? data : [];
-        } catch (error) {
-            console.error("Error al obtener proveedores:", error);
-            return [];
-        }
+        } catch (error) { return []; }
     },
 
-    // 4. Guardar Pedido / Factura Desglosada
-    guardarPedido: async (datosFactura) => {
+    guardarProveedor: async (datosProveedor) => {
         try {
-            const res = await fetch(`${BASE_URL}/api/pedidos`, {
+            const storeId = getActiveStoreId();
+            const payload = { ...datosProveedor, idTienda: storeId, id_tienda: storeId };
+            const res = await fetch(`${BASE_URL}/api/proveedores`, {
                 method: 'POST',
                 headers: getHeaders(),
                 credentials: 'include',
-                body: JSON.stringify(datosFactura)
+                body: JSON.stringify(payload)
             });
-
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.mensaje || "No se pudo registrar el pedido");
-            }
             return await res.json();
-        } catch (error) {
-            console.error("Error al guardar pedido:", error);
-            throw error;
-        }
+        } catch (error) { throw error; }
     },
 
-    // 5. Obtener Historial de Pedidos
-    obtenerPedidos: async () => {
+    eliminarProveedor: async (idProveedor) => {
         try {
-            const res = await fetch(`${BASE_URL}/api/pedidos`, { 
-                method: 'GET',
-                headers: getHeaders(),
-                credentials: 'include'
-            });
-            if (!res.ok) return [];
-            const data = await res.json();
-            return Array.isArray(data) ? data : [];
-        } catch (error) {
-            console.error("Error al obtener pedidos:", error);
-            return [];
-        }
-    },
-
-    // 6. Actualizar Pedido Existente
-    actualizarPedido: async (datosPedido) => {
-        try {
-            const res = await fetch(`${BASE_URL}/api/pedidos`, {
-                method: 'POST',
-                headers: getHeaders(),
-                credentials: 'include',
-                body: JSON.stringify(datosPedido)
-            });
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.mensaje || "No se pudo actualizar el pedido");
-            }
-            return await res.json();
-        } catch (error) {
-            console.error("Error al actualizar pedido:", error);
-            throw error;
-        }
-    },
-
-    // 7. Eliminar Pedido
-    eliminarPedido: async (idPedido) => {
-        try {
-            const res = await fetch(`${BASE_URL}/api/pedidos?id=${idPedido}`, {
+            const storeId = getActiveStoreId();
+            const res = await fetch(`${BASE_URL}/api/proveedores?id=${idProveedor}&idTienda=${storeId}`, {
                 method: 'DELETE',
                 headers: getHeaders(),
                 credentials: 'include'
             });
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.mensaje || "No se pudo eliminar el pedido");
-            }
             return await res.json();
-        } catch (error) {
-            console.error("Error al eliminar pedido:", error);
-            throw error;
-        }
+        } catch (error) { throw error; }
     },
 
-    // 8. Obtener datos y métricas para el Dashboard
+    obtenerPedidos: async () => {
+        try {
+            const storeId = getActiveStoreId();
+            const res = await fetch(`${BASE_URL}/api/pedidos?idTienda=${storeId}`, { 
+                method: 'GET',
+                headers: getHeaders(),
+                credentials: 'include'
+            });
+            if (!res.ok) return [];
+            const data = await res.json();
+            return Array.isArray(data) ? data : [];
+        } catch (error) { return []; }
+    },
+
+    guardarPedido: async (datosFactura) => {
+        try {
+            const storeId = getActiveStoreId();
+            const payload = { ...datosFactura, idTienda: storeId, id_tienda: storeId };
+            const res = await fetch(`${BASE_URL}/api/pedidos`, {
+                method: 'POST',
+                headers: getHeaders(),
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+            return await res.json();
+        } catch (error) { throw error; }
+    },
+
+    actualizarPedido: async (datosPedido) => {
+        try {
+            const storeId = getActiveStoreId();
+            const payload = { ...datosPedido, idTienda: storeId, id_tienda: storeId };
+            const res = await fetch(`${BASE_URL}/api/pedidos`, {
+                method: 'POST',
+                headers: getHeaders(),
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+            return await res.json();
+        } catch (error) { throw error; }
+    },
+
+    eliminarPedido: async (idPedido) => {
+        try {
+            const storeId = getActiveStoreId();
+            const res = await fetch(`${BASE_URL}/api/pedidos?id=${idPedido}&idTienda=${storeId}`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+                credentials: 'include'
+            });
+            return await res.json();
+        } catch (error) { throw error; }
+    },
+
     obtenerDashboard: async () => {
         try {
-            const res = await fetch(`${BASE_URL}/api/dashboard`, { 
+            const storeId = getActiveStoreId();
+            const res = await fetch(`${BASE_URL}/api/dashboard?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
                 credentials: 'include'
             });
             if (!res.ok) return null;
             return await res.json();
-        } catch (error) {
-            console.error("Error al obtener métricas del dashboard:", error);
-            return null;
-        }
+        } catch (error) { return null; }
+    },
+
+    obtenerHistorialAuditoria: async (buscar = '', modulo = '') => {
+        try {
+            const storeId = getActiveStoreId();
+            const queryParams = new URLSearchParams({ buscar, modulo, idTienda: storeId }).toString();
+            const res = await fetch(`${BASE_URL}/api/auditoria?${queryParams}`, {
+                method: 'GET',
+                headers: getHeaders(),
+                credentials: 'include'
+            });
+            if (!res.ok) return [];
+            const data = await res.json();
+            return Array.isArray(data) ? data : [];
+        } catch (error) { return []; }
     }
 };

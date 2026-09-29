@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        /* Interacción para Electron */
         input, select, textarea {
             -webkit-user-select: text !important;
             user-select: text !important;
@@ -25,7 +24,6 @@
             overflow-x: hidden;
         }
 
-        /* Orbes de luz animados para el fondo */
         .bg-shape-1 {
             position: fixed;
             width: 500px;
@@ -67,7 +65,6 @@
             100% { transform: translate(60px, 40px) scale(1.1); }
         }
 
-        /* Tarjeta de Login */
         .login-card {
             position: relative;
             z-index: 10;
@@ -75,7 +72,6 @@
             -webkit-backdrop-filter: blur(20px);
         }
 
-        /* Password Input container & toggle */
         .password-container {
             position: relative;
         }
@@ -112,7 +108,6 @@
 
 <body>
 
-    <!-- Orbes de luz desenfocados -->
     <div class="bg-shape-1"></div>
     <div class="bg-shape-2"></div>
 
@@ -135,11 +130,11 @@
 
             <form id="loginForm">
                 <div class="mb-3">
-                    <label class="form-label small fw-bold">Correo o Usuario</label>
-                    <input type="text" id="usuario" class="form-control" placeholder="Ingresa tu usuario o correo" required autocomplete="username">
+                    <label class="form-label small fw-bold text-uppercase text-secondary">Correo o Nombre de la Tienda</label>
+                    <input type="text" id="usuario" class="form-control" placeholder="Ingresa tu correo o nombre de la tienda" required autocomplete="username">
                 </div>
                 <div class="mb-4">
-                    <label class="form-label small fw-bold">Contraseña</label>
+                    <label class="form-label small fw-bold text-uppercase text-secondary">Contraseña</label>
                     <div class="password-container">
                         <input type="password" id="password" class="form-control pe-5" placeholder="••••••••" required autocomplete="current-password">
                         <button type="button" class="btn-toggle-password" id="btnTogglePassword" aria-label="Mostrar u ocultar contraseña">
@@ -160,7 +155,6 @@
     <script src="api.js"></script>
 
     <script>
-        // Ocultar/mostrar contraseña
         document.getElementById('btnTogglePassword').addEventListener('click', function () {
             const inputPass = document.getElementById('password');
             const iconEye = document.getElementById('iconEye');
@@ -176,7 +170,6 @@
             }
         });
 
-        // Login
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
@@ -188,52 +181,22 @@
             btnIngresar.innerText = 'Cargando...';
 
             try {
-                const response = await fetch('http://localhost:8080/GastoFacilWeb/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        usuario: usuarioInput,
-                        password: passwordInput
-                    })
+                const data = await API.login(usuarioInput, passwordInput);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Bienvenido ' + (data.nombreUsuario || data.usuario || '') + '!',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = 'dashboard.html';
                 });
-
-                const data = await response.json();
-
-                if (response.ok && data.estatus === "Exitoso") {
-                    const idUsuarioVal = data.idUsuario || data.id_usuario || data.id;
-                    const idTiendaVal = data.idTienda || data.id_tienda || idUsuarioVal;
-
-                    localStorage.setItem('usuarioSesion', JSON.stringify(data));
-                    localStorage.setItem('idUsuario', String(idUsuarioVal));
-                    localStorage.setItem('idTienda', String(idTiendaVal));
-                    localStorage.setItem('nombreUsuario', data.usuario || data.nombreUsuario || 'Usuario');
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Bienvenido ' + (data.usuario || data.nombreUsuario || '') + '!',
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => {
-                        window.location.href = 'dashboard.html';
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de acceso',
-                        text: data.mensaje || 'Credenciales incorrectas'
-                    });
-                    btnIngresar.disabled = false;
-                    btnIngresar.innerText = 'Ingresar';
-                }
             } catch (error) {
-                console.error('Error de red:', error);
+                console.error('Error de acceso:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error de conexión',
-                    text: 'No se pudo conectar con el servidor Java (Tomcat).'
+                    title: 'Error de acceso',
+                    text: error.message || 'Credenciales incorrectas'
                 });
                 btnIngresar.disabled = false;
                 btnIngresar.innerText = 'Ingresar';

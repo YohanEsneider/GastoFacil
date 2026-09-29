@@ -1,8 +1,0 @@
-com\gastofacil\modelo\Proveedor.class
-com\gastofacil\modelo\Pedido.class
-com\gastofacil\servlet\PedidoServlet.class
-com\gastofacil\dao\ProveedorDAO.class
-com\mycompany\gastofacilweb\JakartaRestConfiguration.class
-com\gastofacil\conexion\ConexionBD.class
-com\mycompany\gastofacilweb\resources\JakartaEE10Resource.class
-com\gastofacil\servlet\ProveedorServlet.class

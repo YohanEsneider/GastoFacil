@@ -7,17 +7,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        /* Solución para permitir escritura en inputs en Electron */
         input, select, textarea {
             -webkit-user-select: text !important;
             user-select: text !important;
             pointer-events: auto !important;
             cursor: text !important;
+        }
+
+        .modal-body-custom {
+            max-height: 60vh;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .modal-body-custom h6 {
+            font-weight: 700;
+            margin-top: 1rem;
+            color: var(--primary-blue, #3B82F6);
         }
     </style>
 
@@ -68,7 +79,7 @@
             <div class="form-check mb-4 mt-3">
                 <input class="form-check-input" type="checkbox" id="terms" required style="border-radius: 4px;">
                 <label class="form-check-label small text-muted" for="terms" style="font-weight: 400; padding-top: 2px;">
-                    Acepto los <a href="#" class="text-decoration-none fw-bold" style="color: var(--primary-blue);">Términos y Condiciones</a>
+                    Acepto los <a href="#" class="text-decoration-none fw-bold" style="color: var(--primary-blue);" data-bs-toggle="modal" data-bs-target="#modalTerminos">Términos y Condiciones</a>
                 </label>
             </div>
 
@@ -85,10 +96,144 @@
     </div>
 </div>
 
+<!-- Modal Términos y Condiciones -->
+<div class="modal fade" id="modalTerminos" tabindex="-1" aria-labelledby="modalTerminosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 shadow">
+            <div class="modal-header border-0 pb-0">
+                <ul class="nav nav-tabs border-bottom-0" id="termsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold" id="terminos-tab" data-bs-toggle="tab" data-bs-target="#terminos" type="button" role="tab">Términos y Condiciones</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="politica-tab" data-bs-toggle="tab" data-bs-target="#politica" type="button" role="tab">Política de Privacidad</button>
+                    </li>
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 modal-body-custom">
+                <div class="tab-content" id="termsTabContent">
+                    
+                    <!-- TAB 1: TERMINOS Y CONDICIONES -->
+                    <div class="tab-pane fade show active" id="terminos" role="tabpanel">
+                        <h5 class="fw-bold mb-1">Términos y condiciones de uso de GastoFácil</h5>
+                        <p class="text-muted small mb-3">Última actualización: septiembre de 2026</p>
+                        
+                        <p>Bienvenido a GastoFácil, un sistema diseñado para facilitar el registro, organización y consulta de los gastos relacionados con pedidos y proveedores de una tienda.</p>
+                        <p>Al crear una cuenta y utilizar GastoFácil, el usuario acepta los siguientes términos y condiciones.</p>
+
+                        <h6>1. Uso del sistema</h6>
+                        <p>GastoFácil está destinado a la gestión y control de información relacionada con pedidos, proveedores, productos y gastos de la tienda. El usuario se compromete a utilizar el sistema únicamente para actividades relacionadas con la administración y gestión autorizada de la tienda.</p>
+
+                        <h6>2. Registro de usuario</h6>
+                        <p>Para utilizar las funciones que requieren autenticación, el usuario debe proporcionar información correcta y mantener actualizados sus datos. El usuario es responsable de mantener la confidencialidad de su contraseña y de evitar compartir sus credenciales con otras personas.</p>
+
+                        <h6>3. Información registrada</h6>
+                        <p>La información ingresada en GastoFácil debe corresponder a información relacionada con las actividades de la tienda. El usuario es responsable de verificar que los datos registrados, como pedidos, proveedores, productos, valores y fechas, sean correctos.</p>
+
+                        <h6>4. Roles y permisos</h6>
+                        <p>GastoFácil puede establecer diferentes roles de usuario, como Tendero y Administrador. Cada usuario tendrá acceso únicamente a las funciones y datos que correspondan a los permisos asignados por el sistema. No está permitido intentar acceder, modificar o eliminar información para la cual el usuario no tenga autorización.</p>
+
+                        <h6>5. Seguridad de la cuenta</h6>
+                        <p>El usuario debe mantener protegidos sus datos de acceso. Está prohibido intentar acceder a cuentas de otros usuarios, modificar mecanismos de autenticación o utilizar información de terceros para obtener acceso no autorizado.</p>
+
+                        <h6>6. Uso adecuado</h6>
+                        <p>El usuario no debe utilizar GastoFácil para:</p>
+                        <ul>
+                            <li>Acceder sin autorización a información de otros usuarios.</li>
+                            <li>Manipular deliberadamente información de la tienda.</li>
+                            <li>Intentar alterar o evadir los mecanismos de seguridad.</li>
+                            <li>Introducir contenido malicioso que pueda afectar al sistema.</li>
+                            <li>Utilizar la cuenta de otra persona sin autorización.</li>
+                        </ul>
+
+                        <h6>7. Disponibilidad del sistema</h6>
+                        <p>GastoFácil está diseñado para facilitar la administración de la información de la tienda. Sin embargo, pueden producirse interrupciones debido a mantenimiento, problemas técnicos, fallos de conexión o situaciones externas.</p>
+
+                        <h6>8. Responsabilidad sobre la información</h6>
+                        <p>La información registrada en el sistema debe ser revisada por los usuarios responsables de la administración de la tienda. GastoFácil funciona como una herramienta de apoyo para organizar y consultar información y no reemplaza la responsabilidad del usuario sobre sus registros y decisiones administrativas.</p>
+
+                        <h6>9. Cambios en los términos</h6>
+                        <p>Estos términos pueden actualizarse cuando sea necesario para reflejar cambios en las funcionalidades, seguridad o funcionamiento de GastoFácil. Cuando se realicen cambios importantes, se podrá solicitar al usuario que revise y acepte nuevamente los términos.</p>
+
+                        <h6>10. Aceptación</h6>
+                        <p>Al seleccionar la opción de aceptación durante el registro, el usuario declara que ha leído y acepta estos términos y condiciones de uso. Si el usuario no está de acuerdo con estos términos, no deberá completar el proceso de creación de la cuenta.</p>
+                    </div>
+
+                    <!-- TAB 2: POLITICA DE PRIVACIDAD -->
+                    <div class="tab-pane fade" id="politica" role="tabpanel">
+                        <h5 class="fw-bold mb-1">Política de privacidad de GastoFácil</h5>
+                        <p class="text-muted small mb-3">Última actualización: septiembre de 2026</p>
+
+                        <p>GastoFácil respeta la privacidad de sus usuarios y busca proteger la información proporcionada durante el uso del sistema.</p>
+
+                        <h6>1. Información que se puede recopilar</h6>
+                        <p>Dependiendo de las funciones utilizadas, GastoFácil puede almacenar información como:</p>
+                        <ul>
+                            <li>Nombre del usuario.</li>
+                            <li>Correo electrónico.</li>
+                            <li>Información necesaria para la autenticación de la cuenta.</li>
+                            <li>Información relacionada con proveedores.</li>
+                            <li>Información de productos y pedidos.</li>
+                            <li>Registros de gastos ingresados en el sistema.</li>
+                        </ul>
+                        <p>Las contraseñas no deben almacenarse en texto plano. El sistema debe utilizar mecanismos seguros de hash para protegerlas.</p>
+
+                        <h6>2. Finalidad de la información</h6>
+                        <p>La información recopilada se utiliza para:</p>
+                        <ul>
+                            <li>Crear y administrar las cuentas de usuario.</li>
+                            <li>Autenticar a los usuarios.</li>
+                            <li>Controlar los permisos de acceso.</li>
+                            <li>Registrar y consultar pedidos y gastos.</li>
+                            <li>Generar reportes relacionados con la gestión de la tienda.</li>
+                            <li>Mantener el funcionamiento y la seguridad del sistema.</li>
+                        </ul>
+
+                        <h6>3. Protección de la información</h6>
+                        <p>GastoFácil implementa medidas de seguridad destinadas a proteger la información contra accesos no autorizados, modificaciones indebidas y otros usos no permitidos. El acceso a la información está limitado de acuerdo con los permisos establecidos para cada usuario.</p>
+
+                        <h6>4. Compartición de información</h6>
+                        <p>La información registrada en GastoFácil no debe compartirse con terceros sin autorización, salvo cuando exista una obligación legal aplicable o sea necesario para el funcionamiento autorizado del sistema.</p>
+
+                        <h6>5. Responsabilidad del usuario</h6>
+                        <p>El usuario debe mantener seguras sus credenciales y evitar compartir su contraseña con otras personas. También debe informar al responsable del sistema cuando sospeche que su cuenta ha sido utilizada sin autorización.</p>
+
+                        <h6>6. Conservación de la información</h6>
+                        <p>La información se conservará durante el tiempo necesario para cumplir con las funciones de administración y gestión para las cuales fue registrada, de acuerdo con las necesidades del sistema y las disposiciones aplicables.</p>
+
+                        <h6>7. Solicitudes relacionadas con los datos</h6>
+                        <p>El usuario podrá solicitar información sobre los datos asociados a su cuenta y, cuando corresponda, solicitar su actualización o eliminación de acuerdo con las condiciones aplicables.</p>
+
+                        <h6>8. Cambios en la política</h6>
+                        <p>Esta política podrá actualizarse cuando se incorporen nuevas funcionalidades o se produzcan cambios en el tratamiento de la información.</p>
+
+                        <h6>9. Aceptación</h6>
+                        <p>Al aceptar la Política de privacidad, el usuario reconoce que ha leído la información relacionada con el tratamiento de sus datos dentro de GastoFácil.</p>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-action" id="btnAceptarModalTerms" onclick="aceptarModalTerminos()">Entendido y Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="theme.js"></script>
+<script src="api.js"></script>
 
 <script>
+    function aceptarModalTerminos() {
+        document.getElementById('terms').checked = true;
+        const modalElement = document.getElementById('modalTerminos');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+    }
+
     async function registrarUsuario(e) {
         e.preventDefault();
 
@@ -107,23 +252,14 @@
         btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registrando...';
 
         try {
-            // Envío con el atributo usuario generado a partir del correo
-            const res = await fetch('http://localhost:8080/GastoFacilWeb/api/registro', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    nombre: nombre,
-                    usuario: email.split('@')[0],
-                    correo: email,
-                    password: password
-                })
+            const data = await API.registro({
+                nombre: nombre,
+                usuario: email.split('@')[0],
+                correo: email,
+                password: password
             });
 
-            const data = await res.json();
-
-            if (res.ok || res.status === 201 || data.estatus === 'Exitoso') {
+            if (data.estatus === 'Exitoso' || data.status === 'OK') {
                 await Swal.fire({
                     icon: 'success',
                     title: '¡Cuenta Creada!',
@@ -144,7 +280,7 @@
             Swal.fire({
                 icon: 'error',
                 title: 'Error de Conexión',
-                text: 'No se pudo conectar con el servidor backend.',
+                text: error.message || 'No se pudo conectar con el servidor backend.',
                 confirmButtonColor: '#4318FF'
             });
         } finally {
