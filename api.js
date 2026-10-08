@@ -1,7 +1,5 @@
-// URL Base del servidor Tomcat en NetBeans
-const BASE_URL = 'https://gastofacil.onrender.com';
+const BASE_URL = 'https://gastofacil.onrender.com/GastoFacilWeb';
 
-// Recupera el ID de tienda activo
 const getActiveStoreId = () => {
     let idT = localStorage.getItem('idTienda');
     if (!idT || idT === 'null' || idT === 'undefined' || idT === '0') {
@@ -33,7 +31,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/dashboard?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             return res.ok;
         } catch (error) { return false; }
@@ -44,7 +42,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
+                credentials: 'omit',
                 body: JSON.stringify({ usuario, password })
             });
 
@@ -75,7 +73,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/registro`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
+                credentials: 'omit',
                 body: JSON.stringify(datosUsuario)
             });
             return await res.json();
@@ -91,7 +89,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/proveedores?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             if (!res.ok) return [];
             const data = await res.json();
@@ -106,7 +104,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/proveedores`, {
                 method: 'POST',
                 headers: getHeaders(),
-                credentials: 'include',
+                credentials: 'omit',
                 body: JSON.stringify(payload)
             });
             return await res.json();
@@ -119,7 +117,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/proveedores?id=${idProveedor}&idTienda=${storeId}`, {
                 method: 'DELETE',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             return await res.json();
         } catch (error) { throw error; }
@@ -131,7 +129,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/pedidos?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             if (!res.ok) return [];
             const data = await res.json();
@@ -146,7 +144,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/pedidos`, {
                 method: 'POST',
                 headers: getHeaders(),
-                credentials: 'include',
+                credentials: 'omit',
                 body: JSON.stringify(payload)
             });
             return await res.json();
@@ -160,7 +158,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/pedidos`, {
                 method: 'POST',
                 headers: getHeaders(),
-                credentials: 'include',
+                credentials: 'omit',
                 body: JSON.stringify(payload)
             });
             return await res.json();
@@ -173,7 +171,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/pedidos?id=${idPedido}&idTienda=${storeId}`, {
                 method: 'DELETE',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             return await res.json();
         } catch (error) { throw error; }
@@ -185,7 +183,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/dashboard?idTienda=${storeId}`, { 
                 method: 'GET',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             if (!res.ok) return null;
             return await res.json();
@@ -199,7 +197,7 @@ const API = {
             const res = await fetch(`${BASE_URL}/api/auditoria?${queryParams}`, {
                 method: 'GET',
                 headers: getHeaders(),
-                credentials: 'include'
+                credentials: 'omit'
             });
             if (!res.ok) return [];
             const data = await res.json();
