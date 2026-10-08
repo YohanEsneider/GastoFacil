@@ -1,5 +1,5 @@
 // URL Base del servidor Tomcat en NetBeans
-const BASE_URL = 'http://localhost:8080/GastoFacilWeb';
+const BASE_URL = 'https://gastofacil.onrender.com';
 
 // Recupera el ID de tienda activo
 const getActiveStoreId = () => {
