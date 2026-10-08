@@ -5,11 +5,11 @@ import java.sql.DriverManager;
 
 public class ConexionBD {
 
-    private static final String URL = System.getenv("DB_URL") != null 
+    private static final String URL = System.getenv("DB_URL") != null && !System.getenv("DB_URL").isEmpty()
             ? System.getenv("DB_URL") 
-            : "jdbc:mysql://gastofacil-db-yohangarcia88-94cc.g.aivencloud.com:18310/defaultdb?useSSL=true&requireSSL=false&verifyServerCertificate=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+            : "jdbc:mysql://gastofacil-db-yohangarcia88-94cc.g.aivencloud.com:18310/defaultdb?useSSL=true&trustServerCertificate=true&sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 
-    private static final String USER = System.getenv("DB_USER") != null 
+    private static final String USER = System.getenv("DB_USER") != null && !System.getenv("DB_USER").isEmpty()
             ? System.getenv("DB_USER") 
             : "avnadmin";
 
@@ -20,9 +20,9 @@ public class ConexionBD {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             con = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("¡Conexión exitosa a MySQL Aiven desde el entorno Web!");
+            System.out.println("¡Conexión exitosa a MySQL Aiven!");
         } catch (Exception e) {
-            System.err.println("Error de conexión web: " + e.getMessage());
+            System.err.println("Error de conexión a la BD: " + e.getMessage());
             e.printStackTrace();
         }
         return con;
