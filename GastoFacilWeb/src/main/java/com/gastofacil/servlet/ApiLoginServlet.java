@@ -1,14 +1,12 @@
 package com.gastofacil.servlet;
 
 import com.gastofacil.conexion.ConexionBD;
-import com.gastofacil.modelo.Usuario;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -82,7 +80,7 @@ public class ApiLoginServlet extends HttpServlet {
             String correo = "";
             String rol = "ADMIN";
 
-            // Búsqueda en la tabla 'usuarios'
+            // 1. Búsqueda en la tabla 'usuarios'
             String sqlUsuarios = "SELECT * FROM usuarios WHERE LOWER(TRIM(usuario)) = LOWER(?) OR LOWER(TRIM(correo)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?)";
             try (PreparedStatement ps = con.prepareStatement(sqlUsuarios)) {
                 ps.setString(1, usuarioInput);
@@ -105,7 +103,7 @@ public class ApiLoginServlet extends HttpServlet {
                 }
             } catch (Exception ignored) {}
 
-            // Búsqueda en la tabla 'tienda'
+            // 2. Búsqueda en la tabla 'tienda'
             if (!autenticado) {
                 String sqlTienda = "SELECT * FROM tienda WHERE LOWER(TRIM(correo)) = LOWER(?) OR LOWER(TRIM(nombre_tienda)) = LOWER(?) OR LOWER(TRIM(nombre)) = LOWER(?) OR LOWER(TRIM(usuario)) = LOWER(?)";
                 try (PreparedStatement ps = con.prepareStatement(sqlTienda)) {
@@ -131,13 +129,7 @@ public class ApiLoginServlet extends HttpServlet {
             if (autenticado) {
                 int idTiendaFinal = (idTiendaBD > 0) ? idTiendaBD : ((idUsuarioBD > 0) ? idUsuarioBD : 1);
 
-                Usuario u = new Usuario();
-                u.setNombre(nombreUsuario);
-                u.setUsuario(nombreUsuario);
-                u.setRol(rol);
-
                 HttpSession session = request.getSession(true);
-                session.setAttribute("usuarioLogueado", u);
                 session.setAttribute("idTienda", idTiendaFinal);
                 session.setAttribute("nombreUsuario", nombreUsuario);
                 session.setAttribute("rolUsuario", rol);
@@ -173,14 +165,7 @@ public class ApiLoginServlet extends HttpServlet {
 
     private boolean validarPassword(String plainPass, String shaPass, String dbPass) {
         if (dbPass == null) return false;
-        if (plainPass.equals(dbPass) || shaPass.equalsIgnoreCase(dbPass)) {
-            return true;
-        }
-        try {
-            return BCrypt.checkpw(plainPass, dbPass);
-        } catch (Exception e) {
-            return false;
-        }
+        return plainPass.equals(dbPass) || shaPass.equalsIgnoreCase(dbPass);
     }
 
     private String extraerValorJson(String json, String clave) {
