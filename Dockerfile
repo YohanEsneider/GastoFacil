@@ -2,7 +2,7 @@
 FROM maven:3.8.6-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY . .
-RUN find . -name "pom.xml" -exec mvn clean package -DskipTests -f {} \;
+RUN mvn clean package -DskipTests -f GastoFacilWeb/pom.xml
 
 # 2. Servidor Tomcat 9
 FROM tomcat:9.0-jdk17-corretto
@@ -33,8 +33,8 @@ RUN sed -i '/<\/web-app>/i \
     <url-pattern>/*</url-pattern>\n\
   </filter-mapping>' /usr/local/tomcat/conf/web.xml
 
-# Copiar el .war compilado a la raíz ROOT.war
-COPY --from=build /app/**/target/*.war /usr/local/tomcat/webapps/ROOT.war
+# Copiar el .war generado directamente a ROOT.war
+COPY --from=build /app/GastoFacilWeb/target/*.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
