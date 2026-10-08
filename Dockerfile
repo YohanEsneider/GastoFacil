@@ -4,11 +4,14 @@ WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests -f GastoFacilWeb/pom.xml
 
-# 2. Servidor Tomcat 10 (Compatible con jakarta.servlet y Jakarta EE 10)
+# 2. Servidor Tomcat 10 (Soporte Jakarta EE 10)
 FROM tomcat:10.1-jdk17-corretto
 
-# Vaciar aplicaciones por defecto
+# Vaciar apps por defecto
 RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Desactivar puerto de apagado de Tomcat para evitar bloqueos con los health-checks de Render
+RUN sed -i 's/port="8005" shutdown="SHUTDOWN"/port="-1" shutdown="SHUTDOWN"/' /usr/local/tomcat/conf/server.xml
 
 # Habilitar filtro CORS nativo global en web.xml de Tomcat 10
 RUN sed -i '/<\/web-app>/i \
@@ -33,7 +36,7 @@ RUN sed -i '/<\/web-app>/i \
     <url-pattern>/*</url-pattern>\n\
   </filter-mapping>' /usr/local/tomcat/conf/web.xml
 
-# Copiar el .war compilado a ROOT.war
+# Copiar el .war compilado como ROOT.war
 COPY --from=build /app/GastoFacilWeb/target/*.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
