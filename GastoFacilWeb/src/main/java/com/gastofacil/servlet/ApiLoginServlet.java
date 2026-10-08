@@ -6,7 +6,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,9 +13,10 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
-@WebServlet("/api/login")
-public class ApiLoginServlet extends HttpServlet {
+@WebServlet("/api/registro")
+public class ApiRegistroServlet extends HttpServlet {
 
     private void aplicarCors(HttpServletRequest request, HttpServletResponse response) {
         String origin = request.getHeader("Origin");
@@ -53,16 +53,32 @@ public class ApiLoginServlet extends HttpServlet {
         }
 
         String jsonBody = sb.toString();
-        String usuarioInput = extraerValorJson(jsonBody, "usuario").trim();
-        if (usuarioInput.isEmpty()) {
-            usuarioInput = extraerValorJson(jsonBody, "correo").trim();
+        String nombreTienda = extraerValorJson(jsonBody, "nombre_tienda");
+        if (nombreTienda.isEmpty()) {
+            nombreTienda = extraerValorJson(jsonBody, "nombreTienda");
         }
-        String passwordInput = extraerValorJson(jsonBody, "password").trim();
+        if (nombreTienda.isEmpty()) {
+            nombreTienda = extraerValorJson(jsonBody, "nombre");
+        }
+        if (nombreTienda.isEmpty()) {
+            nombreTienda = extraerValorJson(jsonBody, "usuario");
+        }
 
-        if (usuarioInput.isEmpty() || passwordInput.isEmpty()) {
+        String correo = extraerValorJson(jsonBody, "correo");
+        if (correo.isEmpty()) {
+            correo = extraerValorJson(jsonBody, "email");
+        }
+
+        String password = extraerValorJson(jsonBody, "password");
+
+        if (correo.isEmpty() || password.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Debe proporcionar usuario y contraseña.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Debe completar todos los campos obligatorios.\"}");
             return;
+        }
+
+        if (nombreTienda.isEmpty()) {
+            nombreTienda = "Tienda " + (correo.contains("@") ? correo.split("@")[0] : correo);
         }
 
         try (Connection con = ConexionBD.getConexion()) {
@@ -72,64 +88,47 @@ public class ApiLoginServlet extends HttpServlet {
                 return;
             }
 
-            boolean autenticado = false;
-            int idTiendaBD = 0;
-            String nombreUsuario = "";
-            String correo = "";
-
-            // Consulta directa a la tabla 'tienda'
-            String sqlTienda = "SELECT * FROM tienda WHERE LOWER(TRIM(correo)) = LOWER(?) OR LOWER(TRIM(nombre_tienda)) = LOWER(?)";
-            try (PreparedStatement ps = con.prepareStatement(sqlTienda)) {
-                ps.setString(1, usuarioInput);
-                ps.setString(2, usuarioInput);
-                try (ResultSet rs = ps.executeQuery()) {
+            // Verificar si el correo ya existe
+            String sqlCheck = "SELECT id_tienda FROM tienda WHERE LOWER(TRIM(correo)) = LOWER(?)";
+            try (PreparedStatement psCheck = con.prepareStatement(sqlCheck)) {
+                psCheck.setString(1, correo);
+                try (ResultSet rs = psCheck.executeQuery()) {
                     if (rs.next()) {
-                        String passBD = rs.getString("password");
-                        if (passBD != null && passBD.trim().equals(passwordInput)) {
-                            autenticado = true;
-                            idTiendaBD = rs.getInt("id_tienda");
-                            nombreUsuario = rs.getString("nombre_tienda") != null ? rs.getString("nombre_tienda") : "Tienda";
-                            correo = rs.getString("correo") != null ? rs.getString("correo") : usuarioInput;
-                        }
+                        response.setStatus(HttpServletResponse.SC_CONFLICT);
+                        out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"El correo electrónico ya está registrado.\"}");
+                        return;
                     }
                 }
-            } catch (Exception e) {
-                System.err.println("Error al consultar la tabla tienda: " + e.getMessage());
             }
 
-            if (autenticado) {
-                int idTiendaFinal = (idTiendaBD > 0) ? idTiendaBD : 1;
+            // Insertar directamente en la tabla 'tienda'
+            String sqlInsert = "INSERT INTO tienda (nombre_tienda, correo, password) VALUES (?, ?, ?)";
+            try (PreparedStatement psInsert = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
+                psInsert.setString(1, nombreTienda);
+                psInsert.setString(2, correo);
+                psInsert.setString(3, password);
 
-                HttpSession session = request.getSession(true);
-                session.setAttribute("idTienda", idTiendaFinal);
-                session.setAttribute("nombreUsuario", nombreUsuario);
+                int rows = psInsert.executeUpdate();
+                if (rows > 0) {
+                    int idGenerado = 0;
+                    try (ResultSet rsKey = psInsert.getGeneratedKeys()) {
+                        if (rsKey.next()) {
+                            idGenerado = rsKey.getInt(1);
+                        }
+                    }
 
-                response.setStatus(HttpServletResponse.SC_OK);
-                StringBuilder jsonResp = new StringBuilder("{");
-                jsonResp.append("\"success\":true,");
-                jsonResp.append("\"status\":\"success\",");
-                jsonResp.append("\"estatus\":\"Exitoso\",");
-                jsonResp.append("\"mensaje\":\"Login exitoso\",");
-                jsonResp.append("\"idUsuario\":").append(idTiendaFinal).append(",");
-                jsonResp.append("\"id_usuario\":").append(idTiendaFinal).append(",");
-                jsonResp.append("\"idTienda\":").append(idTiendaFinal).append(",");
-                jsonResp.append("\"id_tienda\":").append(idTiendaFinal).append(",");
-                jsonResp.append("\"nombreUsuario\":\"").append(escapeJson(nombreUsuario)).append("\",");
-                jsonResp.append("\"usuario\":\"").append(escapeJson(nombreUsuario)).append("\",");
-                jsonResp.append("\"correo\":\"").append(escapeJson(correo)).append("\",");
-                jsonResp.append("\"rol\":\"ADMIN\"");
-                jsonResp.append("}");
-
-                out.print(jsonResp.toString());
-            } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Usuario o contraseña incorrectos.\"}");
+                    response.setStatus(HttpServletResponse.SC_CREATED);
+                    out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Registro exitoso. Ya puedes iniciar sesión.\",\"id_tienda\":" + idGenerado + "}");
+                } else {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se pudo registrar la tienda.\"}");
+                }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error interno en el servidor.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error en el servidor al registrar usuario.\"}");
         }
     }
 
@@ -149,10 +148,5 @@ public class ApiLoginServlet extends HttpServlet {
         if (segundaComilla == -1) return "";
 
         return json.substring(primerComilla + 1, segundaComilla).trim();
-    }
-
-    private String escapeJson(String input) {
-        if (input == null) return "";
-        return input.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ");
     }
 }
