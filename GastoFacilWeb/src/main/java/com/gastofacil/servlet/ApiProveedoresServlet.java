@@ -36,7 +36,7 @@ public class ApiProveedoresServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
     }
 
-    // LISTAR PROVEEDORES POR ID TIENDA
+    // LISTAR PROVEEDORES
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -47,14 +47,11 @@ public class ApiProveedoresServlet extends HttpServlet {
         if (idTiendaStr == null || idTiendaStr.isEmpty()) {
             idTiendaStr = request.getHeader("idTienda");
         }
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
-            idTiendaStr = "1"; // Valor por defecto
-        }
-
+        
         int idTienda = 1;
-        try {
-            idTienda = Integer.parseInt(idTiendaStr);
-        } catch (NumberFormatException ignored) {}
+        if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
+            try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
+        }
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
@@ -75,13 +72,13 @@ public class ApiProveedoresServlet extends HttpServlet {
 
                         jsonArr.append("{");
                         jsonArr.append("\"id_proveedor\":").append(rs.getInt("id_proveedor")).append(",");
+                        jsonArr.append("\"idProveedor\":").append(rs.getInt("id_proveedor")).append(",");
                         jsonArr.append("\"id_tienda\":").append(rs.getInt("id_tienda")).append(",");
                         jsonArr.append("\"nombre\":\"").append(escapeJson(rs.getString("nombre"))).append("\",");
-                        jsonArr.append("\"contacto\":\"").append(escapeJson(rs.getString("contacto"))).append("\",");
                         jsonArr.append("\"telefono\":\"").append(escapeJson(rs.getString("telefono"))).append("\",");
                         jsonArr.append("\"categoria\":\"").append(escapeJson(rs.getString("categoria"))).append("\",");
-                        jsonArr.append("\"dias_atencion\":\"").append(escapeJson(rs.getString("dias_atencion"))).append("\",");
-                        jsonArr.append("\"horario\":\"").append(escapeJson(rs.getString("horario"))).append("\"");
+                        jsonArr.append("\"dias_visita\":\"").append(escapeJson(rs.getString("dias_atencion"))).append("\",");
+                        jsonArr.append("\"diasVisita\":\"").append(escapeJson(rs.getString("dias_atencion"))).append("\"");
                         jsonArr.append("}");
                     }
                     jsonArr.append("]");
@@ -96,7 +93,7 @@ public class ApiProveedoresServlet extends HttpServlet {
         }
     }
 
-    // REGISTRAR NUEVO PROVEEDOR
+    // REGISTRAR O EDITAR PROVEEDOR
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -112,19 +109,22 @@ public class ApiProveedoresServlet extends HttpServlet {
         }
 
         String jsonBody = sb.toString();
-        String nombre = extraerValorJson(jsonBody, "nombre");
-        if (nombre.isEmpty()) nombre = extraerValorJson(jsonBody, "nombre_proveedor");
+        
+        String idProvStr = extraerValorJson(jsonBody, "idProveedor");
+        if (idProvStr.isEmpty()) idProvStr = extraerValorJson(jsonBody, "id_proveedor");
+        int idProveedor = 0;
+        if (!idProvStr.isEmpty()) {
+            try { idProveedor = Integer.parseInt(idProvStr); } catch (NumberFormatException ignored) {}
+        }
 
-        String contacto = extraerValorJson(jsonBody, "contacto");
+        String nombre = extraerValorJson(jsonBody, "nombre");
         String telefono = extraerValorJson(jsonBody, "telefono");
         String categoria = extraerValorJson(jsonBody, "categoria");
-        String diasAtencion = extraerValorJson(jsonBody, "dias_atencion");
-        if (diasAtencion.isEmpty()) diasAtencion = extraerValorJson(jsonBody, "diasAtencion");
-        String horario = extraerValorJson(jsonBody, "horario");
+        String diasVisita = extraerValorJson(jsonBody, "diasVisita");
+        if (diasVisita.isEmpty()) diasVisita = extraerValorJson(jsonBody, "dias_visita");
 
         String idTiendaStr = extraerValorJson(jsonBody, "id_tienda");
         if (idTiendaStr.isEmpty()) idTiendaStr = extraerValorJson(jsonBody, "idTienda");
-        
         int idTienda = 1;
         if (!idTiendaStr.isEmpty()) {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
@@ -132,44 +132,102 @@ public class ApiProveedoresServlet extends HttpServlet {
 
         if (nombre.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"El nombre del proveedor es obligatorio.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"El nombre del proveedor es obligatorio.\"}");
             return;
         }
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error de conexión con la base de datos.\"}");
+                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión con la base de datos.\"}");
                 return;
             }
 
-            String sql = "INSERT INTO proveedores (id_tienda, nombre, contacto, telefono, categoria, dias_atencion, horario) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setInt(1, idTienda);
-                ps.setString(2, nombre);
-                ps.setString(3, contacto);
-                ps.setString(4, telefono);
-                ps.setString(5, categoria);
-                ps.setString(6, diasAtencion);
-                ps.setString(7, horario);
+            if (idProveedor > 0) {
+                // ACTUALIZAR PROVEEDOR EXISTENTE
+                String sqlUpdate = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ? AND id_tienda = ?";
+                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
+                    ps.setString(1, nombre);
+                    ps.setString(2, telefono);
+                    ps.setString(3, categoria);
+                    ps.setString(4, diasVisita);
+                    ps.setInt(5, idProveedor);
+                    ps.setInt(6, idTienda);
 
-                int rows = ps.executeUpdate();
-                if (rows > 0) {
-                    int idGenerado = 0;
-                    try (ResultSet rsKey = ps.getGeneratedKeys()) {
-                        if (rsKey.next()) idGenerado = rsKey.getInt(1);
+                    ps.executeUpdate();
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
+                }
+            } else {
+                // INSERTAR NUEVO PROVEEDOR
+                String sqlInsert = "INSERT INTO proveedores (id_tienda, nombre, telefono, categoria, dias_atencion) VALUES (?, ?, ?, ?, ?)";
+                try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt(1, idTienda);
+                    ps.setString(2, nombre);
+                    ps.setString(3, telefono);
+                    ps.setString(4, categoria);
+                    ps.setString(5, diasVisita);
+
+                    int rows = ps.executeUpdate();
+                    if (rows > 0) {
+                        int idGenerado = 0;
+                        try (ResultSet rsKey = ps.getGeneratedKeys()) {
+                            if (rsKey.next()) idGenerado = rsKey.getInt(1);
+                        }
+                        response.setStatus(HttpServletResponse.SC_CREATED);
+                        out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor registrado exitosamente.\",\"id_proveedor\":" + idGenerado + "}");
+                    } else {
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se pudo guardar el proveedor.\"}");
                     }
-                    response.setStatus(HttpServletResponse.SC_CREATED);
-                    out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Proveedor registrado exitosamente.\",\"id_proveedor\":" + idGenerado + "}");
-                } else {
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"No se pudo guardar el proveedor.\"}");
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error interno al guardar proveedor.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error interno al guardar proveedor.\"}");
+        }
+    }
+
+    // ELIMINAR PROVEEDOR
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        aplicarCors(request, response);
+        response.setContentType("application/json; charset=UTF-8");
+        PrintWriter out = response.getWriter();
+
+        String idProvStr = request.getParameter("id");
+        if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("idProveedor");
+        
+        int idProveedor = 0;
+        if (idProvStr != null) {
+            try { idProveedor = Integer.parseInt(idProvStr); } catch (NumberFormatException ignored) {}
+        }
+
+        if (idProveedor <= 0) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"ID de proveedor no válido.\"}");
+            return;
+        }
+
+        try (Connection con = ConexionBD.getConexion()) {
+            if (con == null) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión con la base de datos.\"}");
+                return;
+            }
+
+            String sql = "DELETE FROM proveedores WHERE id_proveedor = ?";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, idProveedor);
+                ps.executeUpdate();
+                response.setStatus(HttpServletResponse.SC_OK);
+                out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor eliminado con éxito.\"}");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error al eliminar el proveedor.\"}");
         }
     }
 
