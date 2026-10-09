@@ -110,12 +110,9 @@ public class ApiProveedoresServlet extends HttpServlet {
 
         String jsonBody = sb.toString();
         
-        String idProvStr = extraerValorJson(jsonBody, "idProveedor");
-        if (idProvStr.isEmpty()) idProvStr = extraerValorJson(jsonBody, "id_proveedor");
-        int idProveedor = 0;
-        if (!idProvStr.isEmpty()) {
-            try { idProveedor = Integer.parseInt(idProvStr); } catch (NumberFormatException ignored) {}
-        }
+        int idProveedor = extraerNumeroJson(jsonBody, "idProveedor");
+        if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id_proveedor");
+        if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id");
 
         String nombre = extraerValorJson(jsonBody, "nombre");
         String telefono = extraerValorJson(jsonBody, "telefono");
@@ -123,12 +120,9 @@ public class ApiProveedoresServlet extends HttpServlet {
         String diasVisita = extraerValorJson(jsonBody, "diasVisita");
         if (diasVisita.isEmpty()) diasVisita = extraerValorJson(jsonBody, "dias_visita");
 
-        String idTiendaStr = extraerValorJson(jsonBody, "id_tienda");
-        if (idTiendaStr.isEmpty()) idTiendaStr = extraerValorJson(jsonBody, "idTienda");
-        int idTienda = 1;
-        if (!idTiendaStr.isEmpty()) {
-            try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
-        }
+        int idTienda = extraerNumeroJson(jsonBody, "id_tienda");
+        if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "idTienda");
+        if (idTienda == 0) idTienda = 1;
 
         if (nombre.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -154,9 +148,24 @@ public class ApiProveedoresServlet extends HttpServlet {
                     ps.setInt(5, idProveedor);
                     ps.setInt(6, idTienda);
 
-                    ps.executeUpdate();
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
+                    int filasAfectadas = ps.executeUpdate();
+                    if (filasAfectadas > 0) {
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
+                    } else {
+                        // Si por algún motivo no afectó filas con id_tienda, intentar actualizar solo por id_proveedor
+                        String sqlUpdateBackup = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ?";
+                        try (PreparedStatement ps2 = con.prepareStatement(sqlUpdateBackup)) {
+                            ps2.setString(1, nombre);
+                            ps2.setString(2, telefono);
+                            ps2.setString(3, categoria);
+                            ps2.setString(4, diasVisita);
+                            ps2.setInt(5, idProveedor);
+                            ps2.executeUpdate();
+                        }
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
+                    }
                 }
             } else {
                 // INSERTAR NUEVO PROVEEDOR
@@ -165,8 +174,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                     ps.setInt(1, idTienda);
                     ps.setString(2, nombre);
                     ps.setString(3, telefono);
-                    ps.setString(4, categoria);
-                    ps.setString(5, diasVisita);
+                    ps.setString(4, diasVisita.isEmpty() ? "No especificado" : diasVisita);
 
                     int rows = ps.executeUpdate();
                     if (rows > 0) {
@@ -198,7 +206,8 @@ public class ApiProveedoresServlet extends HttpServlet {
 
         String idProvStr = request.getParameter("id");
         if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("idProveedor");
-        
+        if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("id_proveedor");
+
         int idProveedor = 0;
         if (idProvStr != null) {
             try { idProveedor = Integer.parseInt(idProvStr); } catch (NumberFormatException ignored) {}
@@ -229,6 +238,32 @@ public class ApiProveedoresServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error al eliminar el proveedor.\"}");
         }
+    }
+
+    private int extraerNumeroJson(String json, String clave) {
+        if (json == null || json.isEmpty()) return 0;
+        try {
+            String patron = "\"" + clave + "\"";
+            int indexClave = json.indexOf(patron);
+            if (indexClave == -1) return 0;
+
+            int indexDosPuntos = json.indexOf(":", indexClave);
+            if (indexDosPuntos == -1) return 0;
+
+            StringBuilder numSb = new StringBuilder();
+            for (int i = indexDosPuntos + 1; i < json.length(); i++) {
+                char c = json.charAt(i);
+                if (Character.isDigit(c)) {
+                    numSb.append(c);
+                } else if (numSb.length() > 0) {
+                    break;
+                }
+            }
+            if (numSb.length() > 0) {
+                return Integer.parseInt(numSb.toString());
+            }
+        } catch (Exception ignored) {}
+        return 0;
     }
 
     private String extraerValorJson(String json, String clave) {
