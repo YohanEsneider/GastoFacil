@@ -49,42 +49,52 @@ public class ApiDashboardServlet extends HttpServlet {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
         }
 
-        double gastoTotal = 0.0;
+        double gastoMesActual = 0.0;
+        double gastoMesAnterior = 0.0;
         int totalPedidos = 0;
         int totalProveedores = 0;
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con != null) {
-                // 1. Sumar el total de pedidos de la tienda
-                String sqlGasto = "SELECT COALESCE(SUM(valor_total), 0) FROM pedidos WHERE id_tienda = ?";
-                try (PreparedStatement psGasto = con.prepareStatement(sqlGasto)) {
+                // 1. Gasto del Mes Actual
+                String sqlGastoMes = "SELECT COALESCE(SUM(valor_total), 0) FROM pedidos " +
+                                     "WHERE id_tienda = ? " +
+                                     "AND MONTH(fecha_compra) = MONTH(CURRENT_DATE()) " +
+                                     "AND YEAR(fecha_compra) = YEAR(CURRENT_DATE())";
+                try (PreparedStatement psGasto = con.prepareStatement(sqlGastoMes)) {
                     psGasto.setInt(1, idTienda);
-                    try (ResultSet rsGasto = psGasto.executeQuery()) {
-                        if (rsGasto.next()) {
-                            gastoTotal = rsGasto.getDouble(1);
-                        }
+                    try (ResultSet rs = psGasto.executeQuery()) {
+                        if (rs.next()) gastoMesActual = rs.getDouble(1);
                     }
                 }
 
-                // 2. Contar pedidos registrados de la tienda
+                // 2. Gasto del Mes Anterior
+                String sqlGastoAnt = "SELECT COALESCE(SUM(valor_total), 0) FROM pedidos " +
+                                     "WHERE id_tienda = ? " +
+                                     "AND MONTH(fecha_compra) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) " +
+                                     "AND YEAR(fecha_compra) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+                try (PreparedStatement psAnt = con.prepareStatement(sqlGastoAnt)) {
+                    psAnt.setInt(1, idTienda);
+                    try (ResultSet rs = psAnt.executeQuery()) {
+                        if (rs.next()) gastoMesAnterior = rs.getDouble(1);
+                    }
+                }
+
+                // 3. Contar pedidos registrados (Total histórico de la tienda)
                 String sqlPedidos = "SELECT COUNT(*) FROM pedidos WHERE id_tienda = ?";
                 try (PreparedStatement psPed = con.prepareStatement(sqlPedidos)) {
                     psPed.setInt(1, idTienda);
                     try (ResultSet rsPed = psPed.executeQuery()) {
-                        if (rsPed.next()) {
-                            totalPedidos = rsPed.getInt(1);
-                        }
+                        if (rsPed.next()) totalPedidos = rsPed.getInt(1);
                     }
                 }
 
-                // 3. Contar proveedores activos de la tienda
+                // 4. Contar proveedores activos
                 String sqlProv = "SELECT COUNT(*) FROM proveedores WHERE id_tienda = ?";
                 try (PreparedStatement psProv = con.prepareStatement(sqlProv)) {
                     psProv.setInt(1, idTienda);
                     try (ResultSet rsProv = psProv.executeQuery()) {
-                        if (rsProv.next()) {
-                            totalProveedores = rsProv.getInt(1);
-                        }
+                        if (rsProv.next()) totalProveedores = rsProv.getInt(1);
                     }
                 }
             }
@@ -95,10 +105,10 @@ public class ApiDashboardServlet extends HttpServlet {
         StringBuilder json = new StringBuilder("{");
         json.append("\"success\":true,");
         json.append("\"status\":\"success\",");
-        json.append("\"gastosMes\":").append(gastoTotal).append(",");
-        json.append("\"gastoTotalMes\":").append(gastoTotal).append(",");
-        json.append("\"gastoTotal\":").append(gastoTotal).append(",");
-        json.append("\"totalGasto\":").append(gastoTotal).append(",");
+        json.append("\"gastosMes\":").append(gastoMesActual).append(",");
+        json.append("\"gastoTotalMes\":").append(gastoMesActual).append(",");
+        json.append("\"gastoTotal\":").append(gastoMesActual).append(",");
+        json.append("\"gastoMesAnterior\":").append(gastoMesAnterior).append(",");
         json.append("\"totalPedidos\":").append(totalPedidos).append(",");
         json.append("\"pedidosRegistrados\":").append(totalPedidos).append(",");
         json.append("\"totalProveedores\":").append(totalProveedores).append(",");
