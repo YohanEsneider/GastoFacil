@@ -49,24 +49,24 @@ public class ApiDashboardServlet extends HttpServlet {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
         }
 
-        double gastoTotalMes = 0.0;
+        double gastoTotal = 0.0;
         int totalPedidos = 0;
         int totalProveedores = 0;
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con != null) {
-                // 1. Obtener gasto total del mes actual
-                String sqlGasto = "SELECT SUM(valor_total) FROM pedidos WHERE id_tienda = ? AND MONTH(fecha_compra) = MONTH(CURRENT_DATE()) AND YEAR(fecha_compra) = YEAR(CURRENT_DATE())";
+                // 1. Sumar el total de pedidos de la tienda
+                String sqlGasto = "SELECT COALESCE(SUM(valor_total), 0) FROM pedidos WHERE id_tienda = ?";
                 try (PreparedStatement psGasto = con.prepareStatement(sqlGasto)) {
                     psGasto.setInt(1, idTienda);
                     try (ResultSet rsGasto = psGasto.executeQuery()) {
                         if (rsGasto.next()) {
-                            gastoTotalMes = rsGasto.getDouble(1);
+                            gastoTotal = rsGasto.getDouble(1);
                         }
                     }
                 }
 
-                // 2. Obtener total de pedidos registrados
+                // 2. Contar pedidos registrados de la tienda
                 String sqlPedidos = "SELECT COUNT(*) FROM pedidos WHERE id_tienda = ?";
                 try (PreparedStatement psPed = con.prepareStatement(sqlPedidos)) {
                     psPed.setInt(1, idTienda);
@@ -77,7 +77,7 @@ public class ApiDashboardServlet extends HttpServlet {
                     }
                 }
 
-                // 3. Obtener total de proveedores activos
+                // 3. Contar proveedores activos de la tienda
                 String sqlProv = "SELECT COUNT(*) FROM proveedores WHERE id_tienda = ?";
                 try (PreparedStatement psProv = con.prepareStatement(sqlProv)) {
                     psProv.setInt(1, idTienda);
@@ -95,8 +95,10 @@ public class ApiDashboardServlet extends HttpServlet {
         StringBuilder json = new StringBuilder("{");
         json.append("\"success\":true,");
         json.append("\"status\":\"success\",");
-        json.append("\"gastoTotal\":").append(gastoTotalMes).append(",");
-        json.append("\"gastoTotalMes\":").append(gastoTotalMes).append(",");
+        json.append("\"gastosMes\":").append(gastoTotal).append(",");
+        json.append("\"gastoTotalMes\":").append(gastoTotal).append(",");
+        json.append("\"gastoTotal\":").append(gastoTotal).append(",");
+        json.append("\"totalGasto\":").append(gastoTotal).append(",");
         json.append("\"totalPedidos\":").append(totalPedidos).append(",");
         json.append("\"pedidosRegistrados\":").append(totalPedidos).append(",");
         json.append("\"totalProveedores\":").append(totalProveedores).append(",");
