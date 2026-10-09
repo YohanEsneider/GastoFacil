@@ -30,6 +30,19 @@ public class ApiProveedoresServlet extends HttpServlet {
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
+    private void registrarAuditoria(Connection con, int idTienda, String modulo, String accion, String descripcion) {
+        try {
+            String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, 'Tienda Yohan', ?, ?, ?)";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, idTienda);
+                ps.setString(2, modulo);
+                ps.setString(3, accion);
+                ps.setString(4, descripcion);
+                ps.executeUpdate();
+            }
+        } catch (Exception ignored) {}
+    }
+
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -138,7 +151,7 @@ public class ApiProveedoresServlet extends HttpServlet {
             }
 
             if (idProveedor > 0) {
-                // ACTUALIZAR PROVEEDOR EXISTENTE
+                // ACTUALIZAR PROVEEDOR
                 String sqlUpdate = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ? AND id_tienda = ?";
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setString(1, nombre);
@@ -147,27 +160,16 @@ public class ApiProveedoresServlet extends HttpServlet {
                     ps.setString(4, diasVisita);
                     ps.setInt(5, idProveedor);
                     ps.setInt(6, idTienda);
-
-                    int filasAfectadas = ps.executeUpdate();
-                    if (filasAfectadas > 0) {
-                        response.setStatus(HttpServletResponse.SC_OK);
-                        out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
-                    } else {
-                        String sqlUpdateBackup = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ?";
-                        try (PreparedStatement ps2 = con.prepareStatement(sqlUpdateBackup)) {
-                            ps2.setString(1, nombre);
-                            ps2.setString(2, telefono);
-                            ps2.setString(3, categoria);
-                            ps2.setString(4, diasVisita);
-                            ps2.setInt(5, idProveedor);
-                            ps2.executeUpdate();
-                        }
-                        response.setStatus(HttpServletResponse.SC_OK);
-                        out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
-                    }
+                    ps.executeUpdate();
                 }
+
+                // Registrar en Auditoría
+                registrarAuditoria(con, idTienda, "Proveedores", "EDICIÓN", "Se actualizó la información del proveedor '" + nombre + "'");
+
+                response.setStatus(HttpServletResponse.SC_OK);
+                out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
             } else {
-                // INSERTAR NUEVO PROVEEDOR (5 parámetros coincidentes)
+                // INSERTAR NUEVO PROVEEDOR
                 String sqlInsert = "INSERT INTO proveedores (id_tienda, nombre, telefono, categoria, dias_atencion) VALUES (?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, idTienda);
@@ -182,6 +184,10 @@ public class ApiProveedoresServlet extends HttpServlet {
                         try (ResultSet rsKey = ps.getGeneratedKeys()) {
                             if (rsKey.next()) idGenerado = rsKey.getInt(1);
                         }
+
+                        // Registrar en Auditoría
+                        registrarAuditoria(con, idTienda, "Proveedores", "CREACIÓN", "Se registró el nuevo proveedor '" + nombre + "'");
+
                         response.setStatus(HttpServletResponse.SC_CREATED);
                         out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor registrado exitosamente.\",\"id_proveedor\":" + idGenerado + "}");
                     } else {
@@ -219,17 +225,19 @@ public class ApiProveedoresServlet extends HttpServlet {
             return;
         }
 
-        try (Connection con = ConexionBD.getConexion()) {
-            if (con == null) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión con la base de datos.\"}");
-                return;
-            }
+        int idTienda = 1;
 
-            String sql = "DELETE FROM proveedores WHERE id_proveedor = ?";
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
-                ps.setInt(1, idProveedor);
-                ps.executeUpdate();
+        try (Connection con = ConexionBD.getConexion()) {
+            if (con != null) {
+                String sql = "DELETE FROM proveedores WHERE id_proveedor = ?";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setInt(1, idProveedor);
+                    ps.executeUpdate();
+                }
+
+                // Registrar en Auditoría
+                registrarAuditoria(con, idTienda, "Proveedores", "ELIMINACIÓN", "Se eliminó el proveedor #" + idProveedor);
+
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor eliminado con éxito.\"}");
             }
@@ -259,9 +267,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                     break;
                 }
             }
-            if (numSb.length() > 0) {
-                return Integer.parseInt(numSb.toString());
-            }
+            if (numSb.length() > 0) return Integer.parseInt(numSb.toString());
         } catch (Exception ignored) {}
         return 0;
     }
