@@ -153,7 +153,6 @@ public class ApiProveedoresServlet extends HttpServlet {
                         response.setStatus(HttpServletResponse.SC_OK);
                         out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
                     } else {
-                        // Si por algún motivo no afectó filas con id_tienda, intentar actualizar solo por id_proveedor
                         String sqlUpdateBackup = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ?";
                         try (PreparedStatement ps2 = con.prepareStatement(sqlUpdateBackup)) {
                             ps2.setString(1, nombre);
@@ -168,13 +167,14 @@ public class ApiProveedoresServlet extends HttpServlet {
                     }
                 }
             } else {
-                // INSERTAR NUEVO PROVEEDOR
+                // INSERTAR NUEVO PROVEEDOR (5 parámetros coincidentes)
                 String sqlInsert = "INSERT INTO proveedores (id_tienda, nombre, telefono, categoria, dias_atencion) VALUES (?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, idTienda);
                     ps.setString(2, nombre);
                     ps.setString(3, telefono);
-                    ps.setString(4, diasVisita.isEmpty() ? "No especificado" : diasVisita);
+                    ps.setString(4, categoria);
+                    ps.setString(5, diasVisita.isEmpty() ? "No especificado" : diasVisita);
 
                     int rows = ps.executeUpdate();
                     if (rows > 0) {
