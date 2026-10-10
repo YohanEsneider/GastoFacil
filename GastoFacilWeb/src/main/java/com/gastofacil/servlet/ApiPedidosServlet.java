@@ -86,15 +86,27 @@ public class ApiPedidosServlet extends HttpServlet {
                         if (!primero) jsonArr.append(",");
                         primero = false;
 
+                        String desc = rs.getString("metodo_pago"); 
+                        // Intentar obtener campo descripcion si existe
+                        try {
+                            desc = rs.getString("descripcion");
+                            if (desc == null || desc.isEmpty()) desc = rs.getString("resumen");
+                        } catch (Exception ignored) {}
+                        if (desc == null) desc = "";
+
                         jsonArr.append("{");
                         jsonArr.append("\"id_pedido\":").append(rs.getInt("id_pedido")).append(",");
                         jsonArr.append("\"idPedido\":").append(rs.getInt("id_pedido")).append(",");
                         jsonArr.append("\"id_tienda\":").append(rs.getInt("id_tienda")).append(",");
                         jsonArr.append("\"id_proveedor\":").append(rs.getInt("id_proveedor")).append(",");
+                        jsonArr.append("\"idProveedor\":").append(rs.getInt("id_proveedor")).append(",");
                         jsonArr.append("\"proveedor\":\"").append(escapeJson(rs.getString("nombre_proveedor"))).append("\",");
                         jsonArr.append("\"fecha\":\"").append(rs.getString("fecha_compra")).append("\",");
                         jsonArr.append("\"fecha_compra\":\"").append(rs.getString("fecha_compra")).append("\",");
+                        jsonArr.append("\"descripcion\":\"").append(escapeJson(desc)).append("\",");
+                        jsonArr.append("\"resumen\":\"").append(escapeJson(desc)).append("\",");
                         jsonArr.append("\"metodo_pago\":\"").append(escapeJson(rs.getString("metodo_pago"))).append("\",");
+                        jsonArr.append("\"metodoPago\":\"").append(escapeJson(rs.getString("metodo_pago"))).append("\",");
                         jsonArr.append("\"total\":").append(rs.getDouble("valor_total")).append(",");
                         jsonArr.append("\"valor_total\":").append(rs.getDouble("valor_total"));
                         jsonArr.append("}");
@@ -142,6 +154,9 @@ public class ApiPedidosServlet extends HttpServlet {
         if (fechaCompra.isEmpty()) fechaCompra = extraerValorJson(jsonBody, "fecha");
         if (fechaCompra.isEmpty()) fechaCompra = java.time.LocalDate.now().toString();
 
+        String descripcion = extraerValorJson(jsonBody, "descripcion");
+        if (descripcion.isEmpty()) descripcion = extraerValorJson(jsonBody, "resumen");
+
         String metodoPago = extraerValorJson(jsonBody, "metodoPago");
         if (metodoPago.isEmpty()) metodoPago = extraerValorJson(jsonBody, "metodo_pago");
         if (metodoPago.isEmpty()) metodoPago = "Efectivo";
@@ -179,6 +194,16 @@ public class ApiPedidosServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
+                // Intentar guardar descripción si existe columna en la tabla pedidos
+                try {
+                    String sqlDesc = "UPDATE pedidos SET descripcion = ? WHERE id_pedido = ?";
+                    try (PreparedStatement psD = con.prepareStatement(sqlDesc)) {
+                        psD.setString(1, descripcion);
+                        psD.setInt(2, idPedido);
+                        psD.executeUpdate();
+                    }
+                } catch (Exception ignored) {}
+
                 // Registrar en Auditoría
                 registrarAuditoria(con, idTienda, "Pedidos", "EDICIÓN", "Se actualizó el pedido #" + idPedido + " por valor de $" + valorTotal);
 
@@ -200,6 +225,16 @@ public class ApiPedidosServlet extends HttpServlet {
                         try (ResultSet rsKey = ps.getGeneratedKeys()) {
                             if (rsKey.next()) idPedidoGenerado = rsKey.getInt(1);
                         }
+
+                        // Intentar guardar la descripción
+                        try {
+                            String sqlDesc = "UPDATE pedidos SET descripcion = ? WHERE id_pedido = ?";
+                            try (PreparedStatement psD = con.prepareStatement(sqlDesc)) {
+                                psD.setString(1, descripcion);
+                                psD.setInt(2, idPedidoGenerado);
+                                psD.executeUpdate();
+                            }
+                        } catch (Exception ignored) {}
 
                         // Registrar en Auditoría
                         registrarAuditoria(con, idTienda, "Pedidos", "CREACIÓN", "Se registró un nuevo pedido #" + idPedidoGenerado + " por valor de $" + valorTotal);
