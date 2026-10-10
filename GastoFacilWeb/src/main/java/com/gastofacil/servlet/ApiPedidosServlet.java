@@ -49,7 +49,7 @@ public class ApiPedidosServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
     }
 
-    // LISTAR PEDIDOS CON SUS ÍTEMS
+    // LISTAR PEDIDOS CON SUS ÍTEMS Y PRECIOS
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -89,6 +89,7 @@ public class ApiPedidosServlet extends HttpServlet {
                         int idPedido = rs.getInt("id_pedido");
                         String desc = rs.getString("descripcion");
                         if (desc == null) desc = "";
+                        double valorTotal = rs.getDouble("valor_total");
 
                         jsonArr.append("{");
                         jsonArr.append("\"id_pedido\":").append(idPedido).append(",");
@@ -103,17 +104,19 @@ public class ApiPedidosServlet extends HttpServlet {
                         jsonArr.append("\"resumen\":\"").append(escapeJson(desc)).append("\",");
                         jsonArr.append("\"metodo_pago\":\"").append(escapeJson(rs.getString("metodo_pago"))).append("\",");
                         jsonArr.append("\"metodoPago\":\"").append(escapeJson(rs.getString("metodo_pago"))).append("\",");
-                        jsonArr.append("\"total\":").append(rs.getDouble("valor_total")).append(",");
-                        jsonArr.append("\"valor_total\":").append(rs.getDouble("valor_total")).append(",");
+                        jsonArr.append("\"total\":").append(valorTotal).append(",");
+                        jsonArr.append("\"valor_total\":").append(valorTotal).append(",");
 
                         // Cargar artículos desde detalle_pedidos
                         jsonArr.append("\"items\":[");
                         String sqlDet = "SELECT * FROM detalle_pedidos WHERE id_pedido = ? ORDER BY id_detalle ASC";
+                        boolean tieneItemsBD = false;
                         try (PreparedStatement psD = con.prepareStatement(sqlDet)) {
                             psD.setInt(1, idPedido);
                             try (ResultSet rsD = psD.executeQuery()) {
                                 boolean primItem = true;
                                 while (rsD.next()) {
+                                    tieneItemsBD = true;
                                     if (!primItem) jsonArr.append(",");
                                     primItem = false;
                                     jsonArr.append("{");
@@ -126,8 +129,42 @@ public class ApiPedidosServlet extends HttpServlet {
                                 }
                             }
                         } catch (Exception ignored) {}
-                        jsonArr.append("]");
 
+                        // Si no hay ítems guardados previamente, calcular valores a partir de la descripción
+                        if (!tieneItemsBD && !desc.isEmpty()) {
+                            String[] partesDesc = desc.split(",");
+                            int numArticulos = partesDesc.length;
+                            double precioEstimado = numArticulos > 0 ? (valorTotal / numArticulos) : valorTotal;
+
+                            boolean primItem = true;
+                            for (String pStr : partesDesc) {
+                                String itemLimpio = pStr.trim();
+                                if (itemLimpio.isEmpty()) continue;
+
+                                int cant = 1;
+                                String nombreProd = itemLimpio;
+                                if (itemLimpio.contains("x ")) {
+                                    String[] subP = itemLimpio.split("x ");
+                                    try { cant = Integer.parseInt(subP[0].trim()); } catch (Exception ignored) {}
+                                    nombreProd = subP[1].trim();
+                                }
+
+                                double unitVal = Math.round((precioEstimado / cant) * 100.0) / 100.0;
+                                double subVal = Math.round(precioEstimado * 100.0) / 100.0;
+
+                                if (!primItem) jsonArr.append(",");
+                                primItem = false;
+                                jsonArr.append("{");
+                                jsonArr.append("\"id_detalle\":0,");
+                                jsonArr.append("\"cantidad\":").append(cant).append(",");
+                                jsonArr.append("\"descripcion\":\"").append(escapeJson(nombreProd)).append("\",");
+                                jsonArr.append("\"precio_unitario\":").append(unitVal).append(",");
+                                jsonArr.append("\"subtotal\":").append(subVal);
+                                jsonArr.append("}");
+                            }
+                        }
+
+                        jsonArr.append("]");
                         jsonArr.append("}");
                     }
                     jsonArr.append("]");
@@ -142,7 +179,7 @@ public class ApiPedidosServlet extends HttpServlet {
         }
     }
 
-    // REGISTRAR O EDITAR PEDIDO Y GUARDAR ARTÍCULOS DETALLADOS
+    // REGISTRAR O EDITAR PEDIDO Y GUARDAR ARTÍCULOS DETALLADOS CON PRECIOS
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -214,13 +251,13 @@ public class ApiPedidosServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
-                // Limpiar ítems anteriores para reemplazar con los editados
+                // Limpiar ítems anteriores
                 try (PreparedStatement psDel = con.prepareStatement("DELETE FROM detalle_pedidos WHERE id_pedido = ?")) {
                     psDel.setInt(1, idPedido);
                     psDel.executeUpdate();
                 }
 
-                // Insertar ítems actualizados
+                // Insertar ítems actualizados con sus precios
                 guardarDetalleItems(con, idPedido, jsonBody);
 
                 // Registrar en Auditoría
@@ -289,10 +326,11 @@ public class ApiPedidosServlet extends HttpServlet {
                         if (desc.isEmpty()) desc = extraerValorJson(obj, "nombre");
 
                         double precioU = extraerDecimalJson(obj, "precio_unitario");
-                        if (precioU == 0) precioU = extraerDecimalJson(obj, "valor_unitario");
+                        if (precioU == 0) precioU = extraerDecimalJson(obj, "precioUnitario");
 
                         double subtotal = extraerDecimalJson(obj, "subtotal");
                         if (subtotal == 0) subtotal = cant * precioU;
+                        if (precioU == 0 && cant > 0 && subtotal > 0) precioU = subtotal / cant;
 
                         if (!desc.isEmpty() || subtotal > 0) {
                             psI.setInt(1, idPedido);
