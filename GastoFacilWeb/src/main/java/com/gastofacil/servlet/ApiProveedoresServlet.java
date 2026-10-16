@@ -203,20 +203,35 @@ public class ApiProveedoresServlet extends HttpServlet {
         }
     }
 
-    // ELIMINAR PROVEEDOR (CON VALIDACIÓN DE INTEGRIDAD REFERENCIAL)
+    // ELIMINAR PROVEEDOR
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
         response.setContentType("application/json; charset=UTF-8");
         PrintWriter out = response.getWriter();
 
+        // 1. Obtener ID de Proveedor de parámetros URL o del cuerpo de la petición JSON
         String idProvStr = request.getParameter("id");
         if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("idProveedor");
         if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("id_proveedor");
 
+        StringBuilder sb = new StringBuilder();
+        String line;
+        try (BufferedReader reader = request.getReader()) {
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+        String jsonBody = sb.toString();
+
         int idProveedor = 0;
-        if (idProvStr != null) {
+        if (idProvStr != null && !idProvStr.isEmpty()) {
             try { idProveedor = Integer.parseInt(idProvStr); } catch (NumberFormatException ignored) {}
+        }
+        if (idProveedor == 0) {
+            idProveedor = extraerNumeroJson(jsonBody, "idProveedor");
+            if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id_proveedor");
+            if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id");
         }
 
         if (idProveedor <= 0) {
@@ -225,7 +240,15 @@ public class ApiProveedoresServlet extends HttpServlet {
             return;
         }
 
+        // 2. Obtener ID Tienda dinámicamente
+        String idTiendaStr = request.getParameter("idTienda");
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
         int idTienda = 1;
+        if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
+            try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
+        }
+        int idTiendaJson = extraerNumeroJson(jsonBody, "id_tienda");
+        if (idTiendaJson > 0) idTienda = idTiendaJson;
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
@@ -234,25 +257,23 @@ public class ApiProveedoresServlet extends HttpServlet {
                 return;
             }
 
-            // 1. VALIDAR SI EL PROVEEDOR TIENE PEDIDOS ASOCIADOS
+            // 3. Validar Integridad Referencial (Pedidos asociados)
             String sqlCheck = "SELECT COUNT(*) FROM pedidos WHERE id_proveedor = ?";
             try (PreparedStatement psCheck = con.prepareStatement(sqlCheck)) {
                 psCheck.setInt(1, idProveedor);
                 try (ResultSet rsCheck = psCheck.executeQuery()) {
                     if (rsCheck.next() && rsCheck.getInt(1) > 0) {
                         int cantidadPedidos = rsCheck.getInt(1);
-                        
-                        // Registrar en Auditoría el intento fallido
-                        registrarAuditoria(con, idTienda, "Proveedores", "BLOQUEO", "Intento fallido de eliminar el proveedor #" + idProveedor + " porque posee " + cantidadPedidos + " pedido(s) registrado(s)");
+                        registrarAuditoria(con, idTienda, "Proveedores", "BLOQUEO", "Intento fallido de eliminar proveedor #" + idProveedor + " con " + cantidadPedidos + " pedidos.");
 
-                        response.setStatus(HttpServletResponse.SC_CONFLICT); // HTTP 409 Conflict
-                        out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se puede eliminar el proveedor porque tiene " + cantidadPedidos + " pedido(s) registrado(s). Elimina primero sus pedidos en el Historial.\"}");
+                        response.setStatus(HttpServletResponse.SC_CONFLICT);
+                        out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se puede eliminar el proveedor porque tiene " + cantidadPedidos + " pedido(s) registrado(s).\"}");
                         return;
                     }
                 }
             }
 
-            // 2. OBTENER NOMBRE DEL PROVEEDOR ANTES DE ELIMINAR (PARA AUDITORÍA)
+            // 4. Obtener nombre para Auditoría
             String nombreProveedor = "Proveedor #" + idProveedor;
             String sqlNombre = "SELECT nombre FROM proveedores WHERE id_proveedor = ?";
             try (PreparedStatement psN = con.prepareStatement(sqlNombre)) {
@@ -262,24 +283,26 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
 
-            // 3. PROCEDER A ELIMINAR SI NO TIENE PEDIDOS
-            String sqlDelete = "DELETE FROM proveedores WHERE id_proveedor = ? AND id_tienda = ?";
+            // 5. Ejecutar la eliminación
+            String sqlDelete = "DELETE FROM proveedores WHERE id_proveedor = ?";
             try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
                 ps.setInt(1, idProveedor);
-                ps.setInt(2, idTienda);
-                ps.executeUpdate();
+                int filasAfectadas = ps.executeUpdate();
+
+                if (filasAfectadas > 0) {
+                    registrarAuditoria(con, idTienda, "Proveedores", "ELIMINACIÓN", "Se eliminó el proveedor '" + nombreProveedor + "'");
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor eliminado con éxito.\"}");
+                } else {
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se encontró el proveedor en la base de datos para eliminar.\"}");
+                }
             }
-
-            // Registrar en Auditoría la eliminación exitosa
-            registrarAuditoria(con, idTienda, "Proveedores", "ELIMINACIÓN", "Se eliminó el proveedor '" + nombreProveedor + "'");
-
-            response.setStatus(HttpServletResponse.SC_OK);
-            out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor eliminado con éxito.\"}");
 
         } catch (Exception e) {
             e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error al intentar eliminar el proveedor.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error interno al intentar eliminar el proveedor.\"}");
         }
     }
 
