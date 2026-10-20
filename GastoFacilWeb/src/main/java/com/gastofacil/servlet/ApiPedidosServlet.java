@@ -30,14 +30,33 @@ public class ApiPedidosServlet extends HttpServlet {
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
+    private void asegurarTiendaExiste(Connection con, int idTienda, String nombreUsuario) {
+        if (idTienda <= 0) return;
+        try {
+            String sqlCheck = "SELECT COUNT(*) FROM tienda WHERE id_tienda = ?";
+            try (PreparedStatement ps = con.prepareStatement(sqlCheck)) {
+                ps.setInt(1, idTienda);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        String sqlInsert = "INSERT INTO tienda (id_tienda, nombre) VALUES (?, ?)";
+                        try (PreparedStatement psI = con.prepareStatement(sqlInsert)) {
+                            psI.setInt(1, idTienda);
+                            psI.setString(2, (nombreUsuario != null && !nombreUsuario.isEmpty()) ? nombreUsuario : "Tienda " + idTienda);
+                            psI.executeUpdate();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
     private void registrarAuditoria(Connection con, int idTienda, String usuario, String modulo, String accion, String descripcion) {
         try {
+            if (idTienda <= 0) return;
             if (usuario == null || usuario.trim().isEmpty() || usuario.equalsIgnoreCase("Usuario")) {
-                usuario = obtenerNombreUsuarioPorTienda(con, idTienda);
+                usuario = obtenerNombreUsuario(con, idTienda);
             }
-            if (usuario.length() > 50) {
-                usuario = usuario.substring(0, 50);
-            }
+            if (usuario.length() > 100) usuario = usuario.substring(0, 100);
 
             String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -49,14 +68,14 @@ public class ApiPedidosServlet extends HttpServlet {
                 ps.executeUpdate();
             }
         } catch (Exception e) {
-            System.err.println("Advertencia no crítica en auditoría de pedidos: " + e.getMessage());
+            System.err.println("Advertencia auditoria pedidos: " + e.getMessage());
         }
     }
 
-    private String obtenerNombreUsuarioPorTienda(Connection con, int idTienda) {
-        String nombre = "Tienda";
+    private String obtenerNombreUsuario(Connection con, int idTienda) {
+        String nombre = "Tienda Prueba";
         try {
-            String sql = "SELECT nombre FROM usuarios WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
+            String sql = "SELECT nombre FROM usuario WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, idTienda);
                 ps.setInt(2, idTienda);
@@ -75,7 +94,7 @@ public class ApiPedidosServlet extends HttpServlet {
         if (usr.isEmpty()) usr = extraerValorJson(jsonBody, "nombreUsuario");
         if (usr.isEmpty()) usr = request.getHeader("X-Usuario-Nombre");
         if (usr.isEmpty() || usr.equalsIgnoreCase("Usuario")) {
-            usr = obtenerNombreUsuarioPorTienda(con, idTienda);
+            usr = obtenerNombreUsuario(con, idTienda);
         }
         return usr;
     }
@@ -86,7 +105,7 @@ public class ApiPedidosServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
     }
 
-    // LISTAR PEDIDOS CON SUS ÍTEMS Y PRECIOS
+    // LISTAR PEDIDOS
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -94,12 +113,8 @@ public class ApiPedidosServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         String idTiendaStr = request.getParameter("idTienda");
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
-            idTiendaStr = request.getHeader("idTienda");
-        }
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
-            idTiendaStr = request.getHeader("X-Usuario-Id");
-        }
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("X-Usuario-Id");
 
         int idTienda = 1;
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
@@ -148,7 +163,7 @@ public class ApiPedidosServlet extends HttpServlet {
                         jsonArr.append("\"total\":").append(valorTotal).append(",");
                         jsonArr.append("\"valor_total\":").append(valorTotal).append(",");
 
-                        // Cargar artículos desde detalle_pedidos
+                        // Cargar ítems
                         jsonArr.append("\"items\":[");
                         String sqlDet = "SELECT * FROM detalle_pedidos WHERE id_pedido = ? ORDER BY id_detalle ASC";
                         boolean tieneItemsBD = false;
@@ -171,7 +186,6 @@ public class ApiPedidosServlet extends HttpServlet {
                             }
                         } catch (Exception ignored) {}
 
-                        // Si no hay ítems guardados previamente, calcular valores a partir de la descripción
                         if (!tieneItemsBD && !desc.isEmpty()) {
                             String[] partesDesc = desc.split(",");
                             int numArticulos = partesDesc.length;
@@ -220,7 +234,7 @@ public class ApiPedidosServlet extends HttpServlet {
         }
     }
 
-    // REGISTRAR O EDITAR PEDIDO Y GUARDAR ARTÍCULOS DETALLADOS CON PRECIOS
+    // REGISTRAR O EDITAR PEDIDO
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -230,9 +244,7 @@ public class ApiPedidosServlet extends HttpServlet {
         StringBuilder sb = new StringBuilder();
         String line;
         try (BufferedReader reader = request.getReader()) {
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
+            while ((line = reader.readLine()) != null) sb.append(line);
         }
 
         String jsonBody = sb.toString();
@@ -271,11 +283,12 @@ public class ApiPedidosServlet extends HttpServlet {
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión con la base de datos.\"}");
+                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión BD.\"}");
                 return;
             }
 
             String usuarioAuditoria = resolverUsuarioRequest(request, jsonBody, con, idTienda);
+            asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
 
             if (idProveedor == 0) {
                 String sqlFirst = "SELECT id_proveedor FROM proveedores WHERE id_tienda = ? LIMIT 1";
@@ -288,7 +301,7 @@ public class ApiPedidosServlet extends HttpServlet {
             }
 
             if (idPedido > 0) {
-                // ACTUALIZAR PEDIDO
+                // ACTUALIZAR
                 String sqlUpdate = "UPDATE pedidos SET id_proveedor = ?, fecha_compra = ?, metodo_pago = ?, valor_total = ?, descripcion = ? WHERE id_pedido = ? AND id_tienda = ?";
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setInt(1, idProveedor);
@@ -301,22 +314,18 @@ public class ApiPedidosServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
-                // Limpiar ítems anteriores
                 try (PreparedStatement psDel = con.prepareStatement("DELETE FROM detalle_pedidos WHERE id_pedido = ?")) {
                     psDel.setInt(1, idPedido);
                     psDel.executeUpdate();
                 }
 
-                // Insertar ítems actualizados con sus precios
                 guardarDetalleItems(con, idPedido, jsonBody);
-
-                // Registrar en Auditoría dinámicamente
                 registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "EDICIÓN", "Se actualizó el pedido #" + idPedido + " por valor de $" + valorTotal);
 
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Pedido actualizado exitosamente.\",\"id_pedido\":" + idPedido + "}");
             } else {
-                // CREAR NUEVO PEDIDO
+                // CREAR
                 String sqlInsert = "INSERT INTO pedidos (id_tienda, id_proveedor, fecha_compra, metodo_pago, valor_total, descripcion) VALUES (?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, idTienda);
@@ -333,10 +342,7 @@ public class ApiPedidosServlet extends HttpServlet {
                             if (rsKey.next()) idPedidoGenerado = rsKey.getInt(1);
                         }
 
-                        // Guardar artículos individuales
                         guardarDetalleItems(con, idPedidoGenerado, jsonBody);
-
-                        // Registrar en Auditoría dinámicamente
                         registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "CREACIÓN", "Se registró un nuevo pedido #" + idPedidoGenerado + " por valor de $" + valorTotal);
 
                         response.setStatus(HttpServletResponse.SC_CREATED);
@@ -430,6 +436,7 @@ public class ApiPedidosServlet extends HttpServlet {
         try (Connection con = ConexionBD.getConexion()) {
             if (con != null) {
                 String usuarioAuditoria = resolverUsuarioRequest(request, "", con, idTienda);
+                asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
 
                 String sql = "DELETE FROM pedidos WHERE id_pedido = ?";
                 try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -437,7 +444,6 @@ public class ApiPedidosServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
-                // Registrar en Auditoría dinámicamente
                 registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "ELIMINACIÓN", "Se eliminó el registro del pedido #" + idPedido);
 
                 response.setStatus(HttpServletResponse.SC_OK);
@@ -463,11 +469,8 @@ public class ApiPedidosServlet extends HttpServlet {
             StringBuilder numSb = new StringBuilder();
             for (int i = indexDosPuntos + 1; i < json.length(); i++) {
                 char c = json.charAt(i);
-                if (Character.isDigit(c)) {
-                    numSb.append(c);
-                } else if (numSb.length() > 0) {
-                    break;
-                }
+                if (Character.isDigit(c)) numSb.append(c);
+                else if (numSb.length() > 0) break;
             }
             if (numSb.length() > 0) return Integer.parseInt(numSb.toString());
         } catch (Exception ignored) {}
@@ -487,11 +490,8 @@ public class ApiPedidosServlet extends HttpServlet {
             StringBuilder numSb = new StringBuilder();
             for (int i = indexDosPuntos + 1; i < json.length(); i++) {
                 char c = json.charAt(i);
-                if (Character.isDigit(c) || c == '.') {
-                    numSb.append(c);
-                } else if (numSb.length() > 0 && c != ' ') {
-                    break;
-                }
+                if (Character.isDigit(c) || c == '.') numSb.append(c);
+                else if (numSb.length() > 0 && c != ' ') break;
             }
             if (numSb.length() > 0) return Double.parseDouble(numSb.toString());
         } catch (Exception ignored) {}
