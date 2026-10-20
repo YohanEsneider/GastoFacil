@@ -30,17 +30,46 @@ public class ApiProveedoresServlet extends HttpServlet {
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
-    private void registrarAuditoria(Connection con, int idTienda, String modulo, String accion, String descripcion) {
+    private void registrarAuditoria(Connection con, int idTienda, String usuario, String modulo, String accion, String descripcion) {
         try {
-            String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, 'Tienda Yohan', ?, ?, ?)";
+            if (usuario == null || usuario.trim().isEmpty() || usuario.equalsIgnoreCase("Usuario")) {
+                usuario = obtenerNombreUsuarioPorTienda(con, idTienda);
+            }
+            String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, idTienda);
-                ps.setString(2, modulo);
-                ps.setString(3, accion);
-                ps.setString(4, descripcion);
+                ps.setString(2, usuario);
+                ps.setString(3, modulo);
+                ps.setString(4, accion);
+                ps.setString(5, descripcion);
                 ps.executeUpdate();
             }
         } catch (Exception ignored) {}
+    }
+
+    private String obtenerNombreUsuarioPorTienda(Connection con, int idTienda) {
+        String nombre = "Tienda";
+        try {
+            String sql = "SELECT nombre FROM usuarios WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, idTienda);
+                ps.setInt(2, idTienda);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getString("nombre") != null) {
+                        nombre = rs.getString("nombre");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return nombre;
+    }
+
+    private String resolverUsuarioRequest(HttpServletRequest request, String jsonBody, Connection con, int idTienda) {
+        String usr = extraerValorJson(jsonBody, "usuario");
+        if (usr.isEmpty()) usr = extraerValorJson(jsonBody, "nombreUsuario");
+        if (usr.isEmpty()) usr = request.getHeader("X-Usuario-Nombre");
+        if (usr.isEmpty()) usr = obtenerNombreUsuarioPorTienda(con, idTienda);
+        return usr;
     }
 
     @Override
@@ -59,6 +88,9 @@ public class ApiProveedoresServlet extends HttpServlet {
         String idTiendaStr = request.getParameter("idTienda");
         if (idTiendaStr == null || idTiendaStr.isEmpty()) {
             idTiendaStr = request.getHeader("idTienda");
+        }
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
+            idTiendaStr = request.getHeader("X-Usuario-Id");
         }
         
         int idTienda = 1;
@@ -135,6 +167,13 @@ public class ApiProveedoresServlet extends HttpServlet {
 
         int idTienda = extraerNumeroJson(jsonBody, "id_tienda");
         if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "idTienda");
+        if (idTienda == 0) {
+            String idTStr = request.getHeader("idTienda");
+            if (idTStr == null || idTStr.isEmpty()) idTStr = request.getHeader("X-Usuario-Id");
+            if (idTStr != null && !idTStr.isEmpty()) {
+                try { idTienda = Integer.parseInt(idTStr); } catch (Exception ignored) {}
+            }
+        }
         if (idTienda == 0) idTienda = 1;
 
         if (nombre.isEmpty()) {
@@ -150,6 +189,8 @@ public class ApiProveedoresServlet extends HttpServlet {
                 return;
             }
 
+            String usuarioAuditoria = resolverUsuarioRequest(request, jsonBody, con, idTienda);
+
             if (idProveedor > 0) {
                 // ACTUALIZAR PROVEEDOR
                 String sqlUpdate = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ? AND id_tienda = ?";
@@ -163,8 +204,8 @@ public class ApiProveedoresServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
-                // Registrar en Auditoría
-                registrarAuditoria(con, idTienda, "Proveedores", "EDICIÓN", "Se actualizó la información del proveedor '" + nombre + "'");
+                // Registrar en Auditoría dinámicamente
+                registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "EDICIÓN", "Se actualizó la información del proveedor '" + nombre + "'");
 
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
@@ -185,8 +226,8 @@ public class ApiProveedoresServlet extends HttpServlet {
                             if (rsKey.next()) idGenerado = rsKey.getInt(1);
                         }
 
-                        // Registrar en Auditoría
-                        registrarAuditoria(con, idTienda, "Proveedores", "CREACIÓN", "Se registró el nuevo proveedor '" + nombre + "'");
+                        // Registrar en Auditoría dinámicamente
+                        registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "CREACIÓN", "Se registró el nuevo proveedor '" + nombre + "'");
 
                         response.setStatus(HttpServletResponse.SC_CREATED);
                         out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor registrado exitosamente.\",\"id_proveedor\":" + idGenerado + "}");
@@ -210,7 +251,6 @@ public class ApiProveedoresServlet extends HttpServlet {
         response.setContentType("application/json; charset=UTF-8");
         PrintWriter out = response.getWriter();
 
-        // 1. Obtener ID de Proveedor de parámetros URL o del cuerpo de la petición JSON
         String idProvStr = request.getParameter("id");
         if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("idProveedor");
         if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("id_proveedor");
@@ -240,9 +280,9 @@ public class ApiProveedoresServlet extends HttpServlet {
             return;
         }
 
-        // 2. Obtener ID Tienda dinámicamente
         String idTiendaStr = request.getParameter("idTienda");
         if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("X-Usuario-Id");
         int idTienda = 1;
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
@@ -257,14 +297,16 @@ public class ApiProveedoresServlet extends HttpServlet {
                 return;
             }
 
-            // 3. Validar Integridad Referencial (Pedidos asociados)
+            String usuarioAuditoria = resolverUsuarioRequest(request, jsonBody, con, idTienda);
+
+            // Validar Integridad Referencial
             String sqlCheck = "SELECT COUNT(*) FROM pedidos WHERE id_proveedor = ?";
             try (PreparedStatement psCheck = con.prepareStatement(sqlCheck)) {
                 psCheck.setInt(1, idProveedor);
                 try (ResultSet rsCheck = psCheck.executeQuery()) {
                     if (rsCheck.next() && rsCheck.getInt(1) > 0) {
                         int cantidadPedidos = rsCheck.getInt(1);
-                        registrarAuditoria(con, idTienda, "Proveedores", "BLOQUEO", "Intento fallido de eliminar proveedor #" + idProveedor + " con " + cantidadPedidos + " pedidos.");
+                        registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "BLOQUEO", "Intento fallido de eliminar proveedor #" + idProveedor + " con " + cantidadPedidos + " pedidos.");
 
                         response.setStatus(HttpServletResponse.SC_CONFLICT);
                         out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se puede eliminar el proveedor porque tiene " + cantidadPedidos + " pedido(s) registrado(s).\"}");
@@ -273,7 +315,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
 
-            // 4. Obtener nombre para Auditoría
+            // Obtener nombre para Auditoría
             String nombreProveedor = "Proveedor #" + idProveedor;
             String sqlNombre = "SELECT nombre FROM proveedores WHERE id_proveedor = ?";
             try (PreparedStatement psN = con.prepareStatement(sqlNombre)) {
@@ -283,14 +325,14 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
 
-            // 5. Ejecutar la eliminación
+            // Ejecutar la eliminación
             String sqlDelete = "DELETE FROM proveedores WHERE id_proveedor = ?";
             try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
                 ps.setInt(1, idProveedor);
                 int filasAfectadas = ps.executeUpdate();
 
                 if (filasAfectadas > 0) {
-                    registrarAuditoria(con, idTienda, "Proveedores", "ELIMINACIÓN", "Se eliminó el proveedor '" + nombreProveedor + "'");
+                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "ELIMINACIÓN", "Se eliminó el proveedor '" + nombreProveedor + "'");
                     response.setStatus(HttpServletResponse.SC_OK);
                     out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor eliminado con éxito.\"}");
                 } else {
