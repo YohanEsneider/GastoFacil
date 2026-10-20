@@ -30,14 +30,33 @@ public class ApiProveedoresServlet extends HttpServlet {
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
+    private void asegurarTiendaExiste(Connection con, int idTienda, String nombreUsuario) {
+        if (idTienda <= 0) return;
+        try {
+            String sqlCheck = "SELECT COUNT(*) FROM tienda WHERE id_tienda = ?";
+            try (PreparedStatement ps = con.prepareStatement(sqlCheck)) {
+                ps.setInt(1, idTienda);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        String sqlInsert = "INSERT INTO tienda (id_tienda, nombre) VALUES (?, ?)";
+                        try (PreparedStatement psI = con.prepareStatement(sqlInsert)) {
+                            psI.setInt(1, idTienda);
+                            psI.setString(2, (nombreUsuario != null && !nombreUsuario.isEmpty()) ? nombreUsuario : "Tienda " + idTienda);
+                            psI.executeUpdate();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
     private void registrarAuditoria(Connection con, int idTienda, String usuario, String modulo, String accion, String descripcion) {
         try {
+            if (idTienda <= 0) return;
             if (usuario == null || usuario.trim().isEmpty() || usuario.equalsIgnoreCase("Usuario")) {
-                usuario = obtenerNombreUsuarioPorTienda(con, idTienda);
+                usuario = obtenerNombreUsuario(con, idTienda);
             }
-            if (usuario.length() > 50) {
-                usuario = usuario.substring(0, 50);
-            }
+            if (usuario.length() > 100) usuario = usuario.substring(0, 100);
 
             String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -49,14 +68,14 @@ public class ApiProveedoresServlet extends HttpServlet {
                 ps.executeUpdate();
             }
         } catch (Exception e) {
-            System.err.println("Advertencia no crítica en auditoría de proveedores: " + e.getMessage());
+            System.err.println("Advertencia auditoria proveedores: " + e.getMessage());
         }
     }
 
-    private String obtenerNombreUsuarioPorTienda(Connection con, int idTienda) {
-        String nombre = "Tienda";
+    private String obtenerNombreUsuario(Connection con, int idTienda) {
+        String nombre = "Tienda Prueba";
         try {
-            String sql = "SELECT nombre FROM usuarios WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
+            String sql = "SELECT nombre FROM usuario WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, idTienda);
                 ps.setInt(2, idTienda);
@@ -75,7 +94,7 @@ public class ApiProveedoresServlet extends HttpServlet {
         if (usr.isEmpty()) usr = extraerValorJson(jsonBody, "nombreUsuario");
         if (usr.isEmpty()) usr = request.getHeader("X-Usuario-Nombre");
         if (usr.isEmpty() || usr.equalsIgnoreCase("Usuario")) {
-            usr = obtenerNombreUsuarioPorTienda(con, idTienda);
+            usr = obtenerNombreUsuario(con, idTienda);
         }
         return usr;
     }
@@ -94,12 +113,8 @@ public class ApiProveedoresServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         String idTiendaStr = request.getParameter("idTienda");
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
-            idTiendaStr = request.getHeader("idTienda");
-        }
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
-            idTiendaStr = request.getHeader("X-Usuario-Id");
-        }
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("X-Usuario-Id");
         
         int idTienda = 1;
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
@@ -156,9 +171,7 @@ public class ApiProveedoresServlet extends HttpServlet {
         StringBuilder sb = new StringBuilder();
         String line;
         try (BufferedReader reader = request.getReader()) {
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
+            while ((line = reader.readLine()) != null) sb.append(line);
         }
 
         String jsonBody = sb.toString();
@@ -193,14 +206,15 @@ public class ApiProveedoresServlet extends HttpServlet {
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión con la base de datos.\"}");
+                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión BD.\"}");
                 return;
             }
 
             String usuarioAuditoria = resolverUsuarioRequest(request, jsonBody, con, idTienda);
+            asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
 
             if (idProveedor > 0) {
-                // ACTUALIZAR PROVEEDOR
+                // ACTUALIZAR
                 String sqlUpdate = "UPDATE proveedores SET nombre = ?, telefono = ?, categoria = ?, dias_atencion = ? WHERE id_proveedor = ? AND id_tienda = ?";
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setString(1, nombre);
@@ -212,13 +226,12 @@ public class ApiProveedoresServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
-                // Registrar en Auditoría dinámicamente
                 registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "EDICIÓN", "Se actualizó la información del proveedor '" + nombre + "'");
 
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Proveedor actualizado exitosamente.\",\"id_proveedor\":" + idProveedor + "}");
             } else {
-                // INSERTAR NUEVO PROVEEDOR
+                // CREAR
                 String sqlInsert = "INSERT INTO proveedores (id_tienda, nombre, telefono, categoria, dias_atencion) VALUES (?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, idTienda);
@@ -234,7 +247,6 @@ public class ApiProveedoresServlet extends HttpServlet {
                             if (rsKey.next()) idGenerado = rsKey.getInt(1);
                         }
 
-                        // Registrar en Auditoría dinámicamente
                         registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "CREACIÓN", "Se registró el nuevo proveedor '" + nombre + "'");
 
                         response.setStatus(HttpServletResponse.SC_CREATED);
@@ -266,9 +278,7 @@ public class ApiProveedoresServlet extends HttpServlet {
         StringBuilder sb = new StringBuilder();
         String line;
         try (BufferedReader reader = request.getReader()) {
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
+            while ((line = reader.readLine()) != null) sb.append(line);
         }
         String jsonBody = sb.toString();
 
@@ -301,11 +311,12 @@ public class ApiProveedoresServlet extends HttpServlet {
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Sin conexión a la base de datos.\"}");
+                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Sin conexión a BD.\"}");
                 return;
             }
 
             String usuarioAuditoria = resolverUsuarioRequest(request, jsonBody, con, idTienda);
+            asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
 
             // Validar Integridad Referencial
             String sqlCheck = "SELECT COUNT(*) FROM pedidos WHERE id_proveedor = ?";
@@ -323,7 +334,6 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
 
-            // Obtener nombre para Auditoría
             String nombreProveedor = "Proveedor #" + idProveedor;
             String sqlNombre = "SELECT nombre FROM proveedores WHERE id_proveedor = ?";
             try (PreparedStatement psN = con.prepareStatement(sqlNombre)) {
@@ -333,7 +343,6 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
 
-            // Ejecutar la eliminación
             String sqlDelete = "DELETE FROM proveedores WHERE id_proveedor = ?";
             try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
                 ps.setInt(1, idProveedor);
@@ -369,11 +378,8 @@ public class ApiProveedoresServlet extends HttpServlet {
             StringBuilder numSb = new StringBuilder();
             for (int i = indexDosPuntos + 1; i < json.length(); i++) {
                 char c = json.charAt(i);
-                if (Character.isDigit(c)) {
-                    numSb.append(c);
-                } else if (numSb.length() > 0) {
-                    break;
-                }
+                if (Character.isDigit(c)) numSb.append(c);
+                else if (numSb.length() > 0) break;
             }
             if (numSb.length() > 0) return Integer.parseInt(numSb.toString());
         } catch (Exception ignored) {}
