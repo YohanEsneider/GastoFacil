@@ -26,7 +26,7 @@ public class ApiProveedoresServlet extends HttpServlet {
             response.setHeader("Access-Control-Allow-Origin", "*");
         }
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, idTienda, X-Usuario-Id");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, idTienda, X-Usuario-Id, X-Usuario-Nombre");
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
@@ -35,6 +35,10 @@ public class ApiProveedoresServlet extends HttpServlet {
             if (usuario == null || usuario.trim().isEmpty() || usuario.equalsIgnoreCase("Usuario")) {
                 usuario = obtenerNombreUsuarioPorTienda(con, idTienda);
             }
+            if (usuario.length() > 50) {
+                usuario = usuario.substring(0, 50);
+            }
+
             String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setInt(1, idTienda);
@@ -44,7 +48,9 @@ public class ApiProveedoresServlet extends HttpServlet {
                 ps.setString(5, descripcion);
                 ps.executeUpdate();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            System.err.println("Advertencia no crítica en auditoría de proveedores: " + e.getMessage());
+        }
     }
 
     private String obtenerNombreUsuarioPorTienda(Connection con, int idTienda) {
@@ -68,7 +74,9 @@ public class ApiProveedoresServlet extends HttpServlet {
         String usr = extraerValorJson(jsonBody, "usuario");
         if (usr.isEmpty()) usr = extraerValorJson(jsonBody, "nombreUsuario");
         if (usr.isEmpty()) usr = request.getHeader("X-Usuario-Nombre");
-        if (usr.isEmpty()) usr = obtenerNombreUsuarioPorTienda(con, idTienda);
+        if (usr.isEmpty() || usr.equalsIgnoreCase("Usuario")) {
+            usr = obtenerNombreUsuarioPorTienda(con, idTienda);
+        }
         return usr;
     }
 
