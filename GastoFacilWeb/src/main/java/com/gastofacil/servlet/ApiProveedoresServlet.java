@@ -74,6 +74,21 @@ public class ApiProveedoresServlet extends HttpServlet {
 
     private String obtenerNombreUsuario(Connection con, int idTienda) {
         String nombre = "Tienda Prueba";
+
+        // 1. Probar en tabla tienda
+        try {
+            String sql = "SELECT nombre FROM tienda WHERE id_tienda = ? LIMIT 1";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, idTienda);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getString("nombre") != null) {
+                        return rs.getString("nombre");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // 2. Probar en tabla usuario
         try {
             String sql = "SELECT nombre FROM usuario WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -81,11 +96,26 @@ public class ApiProveedoresServlet extends HttpServlet {
                 ps.setInt(2, idTienda);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getString("nombre") != null) {
-                        nombre = rs.getString("nombre");
+                        return rs.getString("nombre");
                     }
                 }
             }
         } catch (Exception ignored) {}
+
+        // 3. Probar en tabla usuarios (plural)
+        try {
+            String sql = "SELECT nombre FROM usuarios WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setInt(1, idTienda);
+                ps.setInt(2, idTienda);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getString("nombre") != null) {
+                        return rs.getString("nombre");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
         return nombre;
     }
 
