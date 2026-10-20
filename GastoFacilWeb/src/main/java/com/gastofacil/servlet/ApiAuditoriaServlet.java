@@ -46,6 +46,10 @@ public class ApiAuditoriaServlet extends HttpServlet {
         if (idTiendaStr == null || idTiendaStr.isEmpty()) {
             idTiendaStr = request.getHeader("idTienda");
         }
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
+            idTiendaStr = request.getHeader("X-Usuario-Id");
+        }
+
         int idTienda = 1;
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
@@ -107,8 +111,14 @@ public class ApiAuditoriaServlet extends HttpServlet {
 
         String jsonBody = sb.toString();
 
+        // 1. Extraer usuario dinámicamente
         String usuario = extraerValorJson(jsonBody, "usuario");
-        if (usuario.isEmpty()) usuario = "Tienda Yohan";
+        if (usuario.isEmpty()) {
+            usuario = extraerValorJson(jsonBody, "nombreUsuario");
+        }
+        if (usuario.isEmpty()) {
+            usuario = "Usuario";
+        }
 
         String modulo = extraerValorJson(jsonBody, "modulo");
         if (modulo.isEmpty()) modulo = "General";
@@ -118,7 +128,27 @@ public class ApiAuditoriaServlet extends HttpServlet {
 
         String descripcion = extraerValorJson(jsonBody, "descripcion");
 
+        // 2. Extraer idTienda dinámicamente desde JSON, URL o Headers
+        String idTiendaStr = extraerValorJson(jsonBody, "idTienda");
+        if (idTiendaStr.isEmpty()) {
+            idTiendaStr = extraerValorJson(jsonBody, "id_tienda");
+        }
+        if (idTiendaStr.isEmpty()) {
+            idTiendaStr = request.getParameter("idTienda");
+        }
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
+            idTiendaStr = request.getHeader("idTienda");
+        }
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) {
+            idTiendaStr = request.getHeader("X-Usuario-Id");
+        }
+
         int idTienda = 1;
+        if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
+            try { 
+                idTienda = Integer.parseInt(idTiendaStr); 
+            } catch (NumberFormatException ignored) {}
+        }
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con != null) {
@@ -150,13 +180,28 @@ public class ApiAuditoriaServlet extends HttpServlet {
         int indexDosPuntos = json.indexOf(":", indexClave);
         if (indexDosPuntos == -1) return "";
 
+        // Buscar si el valor es un string o un número
         int primerComilla = json.indexOf("\"", indexDosPuntos);
-        if (primerComilla == -1) return "";
+        if (primerComilla != -1 && primerComilla < indexDosPuntos + 5) {
+            int segundaComilla = json.indexOf("\"", primerComilla + 1);
+            if (segundaComilla != -1) {
+                return json.substring(primerComilla + 1, segundaComilla).trim();
+            }
+        } else {
+            // Manejo de valores numéricos como "idTienda": 2
+            StringBuilder numStr = new StringBuilder();
+            for (int i = indexDosPuntos + 1; i < json.length(); i++) {
+                char c = json.charAt(i);
+                if (Character.isDigit(c)) {
+                    numStr.append(c);
+                } else if (numStr.length() > 0 && !Character.isDigit(c)) {
+                    break;
+                }
+            }
+            return numStr.toString();
+        }
 
-        int segundaComilla = json.indexOf("\"", primerComilla + 1);
-        if (segundaComilla == -1) return "";
-
-        return json.substring(primerComilla + 1, segundaComilla).trim();
+        return "";
     }
 
     private String escapeJson(String input) {
