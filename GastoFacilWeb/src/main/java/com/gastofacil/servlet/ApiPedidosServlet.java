@@ -27,11 +27,11 @@ public class ApiPedidosServlet extends HttpServlet {
         }
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, idTienda, X-Usuario-Id, X-Usuario-Nombre");
+        response.setHeader("Access-Control-Allow-Headers", "*");
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
-    private void asegurarTiendaExiste(Connection con, int idTienda, String nombreUsuario) {
+    private void garantizarTienda(Connection con, int idTienda, String nombre) {
         if (idTienda <= 0) return;
         try {
             String sqlCheck = "SELECT COUNT(*) FROM tienda WHERE id_tienda = ?";
@@ -42,7 +42,7 @@ public class ApiPedidosServlet extends HttpServlet {
                         String sqlInsert = "INSERT INTO tienda (id_tienda, nombre) VALUES (?, ?)";
                         try (PreparedStatement psI = con.prepareStatement(sqlInsert)) {
                             psI.setInt(1, idTienda);
-                            psI.setString(2, (nombreUsuario != null && !nombreUsuario.isEmpty()) ? nombreUsuario : "Tienda " + idTienda);
+                            psI.setString(2, (nombre != null && !nombre.isEmpty()) ? nombre : "Tienda " + idTienda);
                             psI.executeUpdate();
                         }
                     }
@@ -53,11 +53,10 @@ public class ApiPedidosServlet extends HttpServlet {
 
     private void registrarAuditoria(Connection con, int idTienda, String usuario, String modulo, String accion, String descripcion) {
         try {
-            if (idTienda <= 0) return;
-            if (usuario == null || usuario.trim().isEmpty() || usuario.equalsIgnoreCase("Usuario")) {
-                usuario = "Tienda Prueba";
-            }
-            if (usuario.length() > 100) usuario = usuario.substring(0, 100);
+            if (idTienda <= 0) idTienda = 1;
+            if (usuario == null || usuario.trim().isEmpty()) usuario = "Usuario";
+
+            garantizarTienda(con, idTienda, usuario);
 
             String sql = "INSERT INTO auditoria (id_tienda, usuario, modulo, accion, descripcion) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
@@ -69,7 +68,7 @@ public class ApiPedidosServlet extends HttpServlet {
                 ps.executeUpdate();
             }
         } catch (Exception e) {
-            System.err.println("Advertencia auditoria pedidos: " + e.getMessage());
+            System.err.println("Audit Pedidos Ignorado: " + e.getMessage());
         }
     }
 
@@ -79,7 +78,6 @@ public class ApiPedidosServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
     }
 
-    // LISTAR PEDIDOS
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -92,12 +90,11 @@ public class ApiPedidosServlet extends HttpServlet {
 
         int idTienda = 1;
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
-            try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
+            try { idTienda = Integer.parseInt(idTiendaStr); } catch (Exception ignored) {}
         }
 
         try (Connection con = ConexionBD.getConexion()) {
             if (con == null) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 out.print("[]");
                 return;
             }
@@ -135,79 +132,18 @@ public class ApiPedidosServlet extends HttpServlet {
                         jsonArr.append("\"metodo_pago\":\"").append(escapeJson(rs.getString("metodo_pago"))).append("\",");
                         jsonArr.append("\"metodoPago\":\"").append(escapeJson(rs.getString("metodo_pago"))).append("\",");
                         jsonArr.append("\"total\":").append(valorTotal).append(",");
-                        jsonArr.append("\"valor_total\":").append(valorTotal).append(",");
-
-                        jsonArr.append("\"items\":[");
-                        String sqlDet = "SELECT * FROM detalle_pedidos WHERE id_pedido = ? ORDER BY id_detalle ASC";
-                        boolean tieneItemsBD = false;
-                        try (PreparedStatement psD = con.prepareStatement(sqlDet)) {
-                            psD.setInt(1, idPedido);
-                            try (ResultSet rsD = psD.executeQuery()) {
-                                boolean primItem = true;
-                                while (rsD.next()) {
-                                    tieneItemsBD = true;
-                                    if (!primItem) jsonArr.append(",");
-                                    primItem = false;
-                                    jsonArr.append("{");
-                                    jsonArr.append("\"id_detalle\":").append(rsD.getInt("id_detalle")).append(",");
-                                    jsonArr.append("\"cantidad\":").append(rsD.getInt("cantidad")).append(",");
-                                    jsonArr.append("\"descripcion\":\"").append(escapeJson(rsD.getString("descripcion"))).append("\",");
-                                    jsonArr.append("\"precio_unitario\":").append(rsD.getDouble("precio_unitario")).append(",");
-                                    jsonArr.append("\"subtotal\":").append(rsD.getDouble("subtotal"));
-                                    jsonArr.append("}");
-                                }
-                            }
-                        } catch (Exception ignored) {}
-
-                        if (!tieneItemsBD && !desc.isEmpty()) {
-                            String[] partesDesc = desc.split(",");
-                            int numArticulos = partesDesc.length;
-                            double precioEstimado = numArticulos > 0 ? (valorTotal / numArticulos) : valorTotal;
-
-                            boolean primItem = true;
-                            for (String pStr : partesDesc) {
-                                String itemLimpio = pStr.trim();
-                                if (itemLimpio.isEmpty()) continue;
-
-                                int cant = 1;
-                                String nombreProd = itemLimpio;
-                                if (itemLimpio.contains("x ")) {
-                                    String[] subP = itemLimpio.split("x ");
-                                    try { cant = Integer.parseInt(subP[0].trim()); } catch (Exception ignored) {}
-                                    nombreProd = subP[1].trim();
-                                }
-
-                                double unitVal = Math.round((precioEstimado / cant) * 100.0) / 100.0;
-                                double subVal = Math.round(precioEstimado * 100.0) / 100.0;
-
-                                if (!primItem) jsonArr.append(",");
-                                primItem = false;
-                                jsonArr.append("{");
-                                jsonArr.append("\"id_detalle\":0,");
-                                jsonArr.append("\"cantidad\":").append(cant).append(",");
-                                jsonArr.append("\"descripcion\":\"").append(escapeJson(nombreProd)).append("\",");
-                                jsonArr.append("\"precio_unitario\":").append(unitVal).append(",");
-                                jsonArr.append("\"subtotal\":").append(subVal);
-                                jsonArr.append("}");
-                            }
-                        }
-
-                        jsonArr.append("]");
+                        jsonArr.append("\"valor_total\":").append(valorTotal);
                         jsonArr.append("}");
                     }
                     jsonArr.append("]");
-                    response.setStatus(HttpServletResponse.SC_OK);
                     out.print(jsonArr.toString());
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.print("[]");
         }
     }
 
-    // REGISTRAR O EDITAR PEDIDO
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -226,22 +162,15 @@ public class ApiPedidosServlet extends HttpServlet {
             int idPedido = extraerNumeroJson(jsonBody, "idPedido");
             if (idPedido == 0) idPedido = extraerNumeroJson(jsonBody, "id_pedido");
 
-            int idTienda = extraerNumeroJson(jsonBody, "idTienda");
-            if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "id_tienda");
-            if (idTienda == 0) {
-                String idTStr = request.getHeader("idTienda");
-                if (idTStr == null || idTStr.isEmpty()) idTStr = request.getHeader("X-Usuario-Id");
-                if (idTStr != null && !idTStr.isEmpty()) {
-                    try { idTienda = Integer.parseInt(idTStr); } catch (Exception ignored) {}
-                }
-            }
+            int idTienda = extraerNumeroJson(jsonBody, "id_tienda");
+            if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "idTienda");
             if (idTienda == 0) idTienda = 1;
 
             int idProveedor = extraerNumeroJson(jsonBody, "idProveedor");
             if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id_proveedor");
 
-            String fechaCompra = extraerValorJson(jsonBody, "fechaCompra");
-            if (fechaCompra.isEmpty()) fechaCompra = extraerValorJson(jsonBody, "fecha");
+            String fechaCompra = extraerValorJson(jsonBody, "fecha");
+            if (fechaCompra.isEmpty()) fechaCompra = extraerValorJson(jsonBody, "fecha_compra");
             if (fechaCompra.isEmpty()) fechaCompra = java.time.LocalDate.now().toString();
 
             String descripcion = extraerValorJson(jsonBody, "descripcion");
@@ -254,17 +183,17 @@ public class ApiPedidosServlet extends HttpServlet {
             double valorTotal = extraerDecimalJson(jsonBody, "valorTotal");
             if (valorTotal == 0) valorTotal = extraerDecimalJson(jsonBody, "valor_total");
 
+            String usuarioAuditoria = extraerValorJson(jsonBody, "usuario");
+            if (usuarioAuditoria.isEmpty()) usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
+            if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
+
             try (Connection con = ConexionBD.getConexion()) {
                 if (con == null) {
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error de conexión a la base de datos.\"}");
+                    out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error BD\"}");
                     return;
                 }
 
-                String usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
-                if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Tienda Prueba";
-
-                asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
+                garantizarTienda(con, idTienda, usuarioAuditoria);
 
                 if (idProveedor == 0) {
                     String sqlFirst = "SELECT id_proveedor FROM proveedores WHERE id_tienda = ? LIMIT 1";
@@ -289,16 +218,9 @@ public class ApiPedidosServlet extends HttpServlet {
                         ps.executeUpdate();
                     }
 
-                    try (PreparedStatement psDel = con.prepareStatement("DELETE FROM detalle_pedidos WHERE id_pedido = ?")) {
-                        psDel.setInt(1, idPedido);
-                        psDel.executeUpdate();
-                    }
+                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "EDICIÓN", "Actualizado #" + idPedido + " - $" + valorTotal);
 
-                    guardarDetalleItems(con, idPedido, jsonBody);
-                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "EDICIÓN", "Se actualizó el pedido #" + idPedido + " por $" + valorTotal);
-
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Pedido actualizado exitosamente.\",\"id_pedido\":" + idPedido + "}");
+                    out.print("{\"success\":true,\"status\":\"OK\",\"estatus\":\"Exitoso\",\"mensaje\":\"Pedido actualizado.\",\"id_pedido\":" + idPedido + "}");
                 } else {
                     String sqlInsert = "INSERT INTO pedidos (id_tienda, id_proveedor, fecha_compra, metodo_pago, valor_total, descripcion) VALUES (?, ?, ?, ?, ?, ?)";
                     try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
@@ -308,76 +230,24 @@ public class ApiPedidosServlet extends HttpServlet {
                         ps.setString(4, metodoPago);
                         ps.setDouble(5, valorTotal);
                         ps.setString(6, descripcion);
+                        ps.executeUpdate();
 
-                        int rows = ps.executeUpdate();
-                        if (rows > 0) {
-                            int idPedidoGenerado = 0;
-                            try (ResultSet rsKey = ps.getGeneratedKeys()) {
-                                if (rsKey.next()) idPedidoGenerado = rsKey.getInt(1);
-                            }
-
-                            guardarDetalleItems(con, idPedidoGenerado, jsonBody);
-                            registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "CREACIÓN", "Se registró un nuevo pedido #" + idPedidoGenerado + " por $" + valorTotal);
-
-                            response.setStatus(HttpServletResponse.SC_CREATED);
-                            out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Pedido registrado exitosamente.\",\"id_pedido\":" + idPedidoGenerado + "}");
-                        } else {
-                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"No se pudo guardar el pedido.\"}");
+                        int idGen = 0;
+                        try (ResultSet rsKey = ps.getGeneratedKeys()) {
+                            if (rsKey.next()) idGen = rsKey.getInt(1);
                         }
+
+                        registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "CREACIÓN", "Creado #" + idGen + " - $" + valorTotal);
+
+                        out.print("{\"success\":true,\"status\":\"OK\",\"estatus\":\"Exitoso\",\"mensaje\":\"Pedido registrado.\",\"id_pedido\":" + idGen + "}");
                     }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            aplicarCors(request, response);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error interno al procesar el pedido: " + escapeJson(e.getMessage()) + "\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"" + escapeJson(e.getMessage()) + "\"}");
         }
     }
 
-    private void guardarDetalleItems(Connection con, int idPedido, String jsonBody) {
-        if (jsonBody == null || !jsonBody.contains("\"items\"")) return;
-        try {
-            int idxItems = jsonBody.indexOf("\"items\"");
-            int idxBracketOpen = jsonBody.indexOf("[", idxItems);
-            int idxBracketClose = jsonBody.indexOf("]", idxBracketOpen);
-
-            if (idxBracketOpen != -1 && idxBracketClose != -1) {
-                String itemsStr = jsonBody.substring(idxBracketOpen + 1, idxBracketClose);
-                String[] objetos = itemsStr.split("\\},\\{");
-
-                String sqlItem = "INSERT INTO detalle_pedidos (id_pedido, cantidad, descripcion, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
-                try (PreparedStatement psI = con.prepareStatement(sqlItem)) {
-                    for (String obj : objetos) {
-                        int cant = extraerNumeroJson(obj, "cantidad");
-                        if (cant == 0) cant = 1;
-
-                        String desc = extraerValorJson(obj, "descripcion");
-                        if (desc.isEmpty()) desc = extraerValorJson(obj, "nombre");
-
-                        double precioU = extraerDecimalJson(obj, "precio_unitario");
-                        if (precioU == 0) precioU = extraerDecimalJson(obj, "precioUnitario");
-
-                        double subtotal = extraerDecimalJson(obj, "subtotal");
-                        if (subtotal == 0) subtotal = cant * precioU;
-                        if (precioU == 0 && cant > 0 && subtotal > 0) precioU = subtotal / cant;
-
-                        if (!desc.isEmpty() || subtotal > 0) {
-                            psI.setInt(1, idPedido);
-                            psI.setInt(2, cant);
-                            psI.setString(3, desc.isEmpty() ? "Producto" : desc);
-                            psI.setDouble(4, precioU);
-                            psI.setDouble(5, subtotal);
-                            psI.executeUpdate();
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-    }
-
-    // ELIMINAR PEDIDO
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         aplicarCors(request, response);
@@ -388,48 +258,23 @@ public class ApiPedidosServlet extends HttpServlet {
             String idPedStr = request.getParameter("id");
             if (idPedStr == null || idPedStr.isEmpty()) idPedStr = request.getParameter("idPedido");
 
-            int idPedido = 0;
-            if (idPedStr != null) {
-                try { idPedido = Integer.parseInt(idPedStr); } catch (NumberFormatException ignored) {}
-            }
-
-            if (idPedido <= 0) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"ID de pedido no válido.\"}");
-                return;
-            }
-
-            String idTiendaStr = request.getParameter("idTienda");
-            if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
-
+            int idPedido = Integer.parseInt(idPedStr);
             int idTienda = 1;
-            if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
-                try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
-            }
 
             try (Connection con = ConexionBD.getConexion()) {
                 if (con != null) {
-                    String usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
-                    if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Tienda Prueba";
-                    asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
-
-                    String sql = "DELETE FROM pedidos WHERE id_pedido = ?";
-                    try (PreparedStatement ps = con.prepareStatement(sql)) {
-                        ps.setInt(1, idPedido);
-                        ps.executeUpdate();
+                    String sqlDel = "DELETE FROM pedidos WHERE id_pedido = ?";
+                    try (PreparedStatement psD = con.prepareStatement(sqlDel)) {
+                        psD.setInt(1, idPedido);
+                        psD.executeUpdate();
                     }
 
-                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "ELIMINACIÓN", "Se eliminó el pedido #" + idPedido);
-
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Pedido eliminado con éxito.\"}");
+                    registrarAuditoria(con, idTienda, "Usuario", "Pedidos", "ELIMINACIÓN", "Eliminado #" + idPedido);
+                    out.print("{\"success\":true,\"status\":\"OK\",\"estatus\":\"Exitoso\",\"resultado\":true,\"mensaje\":\"Pedido eliminado.\"}");
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            aplicarCors(request, response);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error al eliminar pedido: " + escapeJson(e.getMessage()) + "\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error al eliminar\"}");
         }
     }
 
@@ -437,60 +282,46 @@ public class ApiPedidosServlet extends HttpServlet {
         if (json == null || json.isEmpty()) return 0;
         try {
             String patron = "\"" + clave + "\"";
-            int indexClave = json.indexOf(patron);
-            if (indexClave == -1) return 0;
-
-            int indexDosPuntos = json.indexOf(":", indexClave);
-            if (indexDosPuntos == -1) return 0;
-
-            StringBuilder numSb = new StringBuilder();
-            for (int i = indexDosPuntos + 1; i < json.length(); i++) {
+            int idx = json.indexOf(patron);
+            if (idx == -1) return 0;
+            int idxDosPuntos = json.indexOf(":", idx);
+            StringBuilder sb = new StringBuilder();
+            for (int i = idxDosPuntos + 1; i < json.length(); i++) {
                 char c = json.charAt(i);
-                if (Character.isDigit(c)) numSb.append(c);
-                else if (numSb.length() > 0) break;
+                if (Character.isDigit(c)) sb.append(c);
+                else if (sb.length() > 0) break;
             }
-            if (numSb.length() > 0) return Integer.parseInt(numSb.toString());
-        } catch (Exception ignored) {}
-        return 0;
+            return Integer.parseInt(sb.toString());
+        } catch (Exception e) { return 0; }
     }
 
     private double extraerDecimalJson(String json, String clave) {
         if (json == null || json.isEmpty()) return 0.0;
         try {
             String patron = "\"" + clave + "\"";
-            int indexClave = json.indexOf(patron);
-            if (indexClave == -1) return 0.0;
-
-            int indexDosPuntos = json.indexOf(":", indexClave);
-            if (indexDosPuntos == -1) return 0.0;
-
-            StringBuilder numSb = new StringBuilder();
-            for (int i = indexDosPuntos + 1; i < json.length(); i++) {
+            int idx = json.indexOf(patron);
+            if (idx == -1) return 0.0;
+            int idxDosPuntos = json.indexOf(":", idx);
+            StringBuilder sb = new StringBuilder();
+            for (int i = idxDosPuntos + 1; i < json.length(); i++) {
                 char c = json.charAt(i);
-                if (Character.isDigit(c) || c == '.') numSb.append(c);
-                else if (numSb.length() > 0 && c != ' ') break;
+                if (Character.isDigit(c) || c == '.') sb.append(c);
+                else if (sb.length() > 0 && c != ' ') break;
             }
-            if (numSb.length() > 0) return Double.parseDouble(numSb.toString());
-        } catch (Exception ignored) {}
-        return 0.0;
+            return Double.parseDouble(sb.toString());
+        } catch (Exception e) { return 0.0; }
     }
 
     private String extraerValorJson(String json, String clave) {
         if (json == null || json.isEmpty()) return "";
-        String patron = "\"" + clave + "\"";
-        int indexClave = json.indexOf(patron);
-        if (indexClave == -1) return "";
-
-        int indexDosPuntos = json.indexOf(":", indexClave);
-        if (indexDosPuntos == -1) return "";
-
-        int primerComilla = json.indexOf("\"", indexDosPuntos);
-        if (primerComilla == -1) return "";
-
-        int segundaComilla = json.indexOf("\"", primerComilla + 1);
-        if (segundaComilla == -1) return "";
-
-        return json.substring(primerComilla + 1, segundaComilla).trim();
+        try {
+            String patron = "\"" + clave + "\"";
+            int idx = json.indexOf(patron);
+            if (idx == -1) return "";
+            int p1 = json.indexOf("\"", json.indexOf(":", idx));
+            int p2 = json.indexOf("\"", p1 + 1);
+            return json.substring(p1 + 1, p2).trim();
+        } catch (Exception e) { return ""; }
     }
 
     private String escapeJson(String input) {
