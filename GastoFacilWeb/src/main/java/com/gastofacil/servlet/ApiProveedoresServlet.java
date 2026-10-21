@@ -25,7 +25,6 @@ public class ApiProveedoresServlet extends HttpServlet {
         } else {
             response.setHeader("Access-Control-Allow-Origin", "*");
         }
-        response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "*");
         response.setHeader("Access-Control-Max-Age", "3600");
@@ -68,7 +67,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                 ps.executeUpdate();
             }
         } catch (Exception e) {
-            System.err.println("Audit Proveedores Ignorado: " + e.getMessage());
+            System.err.println("Audit Ignorado: " + e.getMessage());
         }
     }
 
@@ -84,11 +83,8 @@ public class ApiProveedoresServlet extends HttpServlet {
         response.setContentType("application/json; charset=UTF-8");
         PrintWriter out = response.getWriter();
 
-        String idTiendaStr = request.getParameter("idTienda");
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("X-Usuario-Id");
-
         int idTienda = 1;
+        String idTiendaStr = request.getParameter("idTienda");
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (Exception ignored) {}
         }
@@ -153,17 +149,13 @@ public class ApiProveedoresServlet extends HttpServlet {
             String diasVisita = extraerValorJson(jsonBody, "diasVisita");
             if (diasVisita.isEmpty()) diasVisita = extraerValorJson(jsonBody, "dias_visita");
 
-            int idTienda = extraerNumeroJson(jsonBody, "id_tienda");
-            if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "idTienda");
-            if (idTienda == 0) idTienda = 1;
-
+            int idTienda = 1;
             String usuarioAuditoria = extraerValorJson(jsonBody, "usuario");
-            if (usuarioAuditoria.isEmpty()) usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
-            if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
+            if (usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
 
             try (Connection con = ConexionBD.getConexion()) {
                 if (con == null) {
-                    out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error BD\"}");
+                    out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Sin conexión BD\"}");
                     return;
                 }
 
@@ -206,7 +198,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
         } catch (Exception e) {
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"" + escapeJson(e.getMessage()) + "\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"" + escapeJson(e.getMessage()) + "\"}");
         }
     }
 
@@ -230,7 +222,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                         psC.setInt(1, idProveedor);
                         try (ResultSet rs = psC.executeQuery()) {
                             if (rs.next() && rs.getInt(1) > 0) {
-                                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Tiene pedidos asociados.\"}");
+                                out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Tiene pedidos asociados.\"}");
                                 return;
                             }
                         }
@@ -247,7 +239,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                 }
             }
         } catch (Exception e) {
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error al eliminar\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error al eliminar\"}");
         }
     }
 
