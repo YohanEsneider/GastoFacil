@@ -26,7 +26,8 @@ public class ApiProveedoresServlet extends HttpServlet {
             response.setHeader("Access-Control-Allow-Origin", "*");
         }
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "*");
+        // Reemplazamos el "*" por los nombres explícitos de tus cabeceras para evitar bloqueos en Render
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, idTienda, X-Usuario-Id, X-Usuario-Nombre, Accept, Origin, X-Requested-With");
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
@@ -85,6 +86,7 @@ public class ApiProveedoresServlet extends HttpServlet {
 
         int idTienda = 1;
         String idTiendaStr = request.getParameter("idTienda");
+        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
         if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
             try { idTienda = Integer.parseInt(idTiendaStr); } catch (Exception ignored) {}
         }
@@ -149,9 +151,18 @@ public class ApiProveedoresServlet extends HttpServlet {
             String diasVisita = extraerValorJson(jsonBody, "diasVisita");
             if (diasVisita.isEmpty()) diasVisita = extraerValorJson(jsonBody, "dias_visita");
 
-            int idTienda = 1;
+            // SOLUCIÓN: Extraer el idTienda dinámicamente en lugar de quemar el "1"
+            int idTienda = extraerNumeroJson(jsonBody, "id_tienda");
+            if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "idTienda");
+            if (idTienda == 0) {
+                String hdr = request.getHeader("idTienda");
+                if (hdr != null && !hdr.isEmpty()) try { idTienda = Integer.parseInt(hdr); } catch(Exception e){}
+            }
+            if (idTienda == 0) idTienda = 1;
+
             String usuarioAuditoria = extraerValorJson(jsonBody, "usuario");
-            if (usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
+            if (usuarioAuditoria.isEmpty()) usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
+            if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
 
             try (Connection con = ConexionBD.getConexion()) {
                 if (con == null) {
@@ -213,7 +224,13 @@ public class ApiProveedoresServlet extends HttpServlet {
             if (idProvStr == null || idProvStr.isEmpty()) idProvStr = request.getParameter("idProveedor");
 
             int idProveedor = Integer.parseInt(idProvStr);
+            
+            String idTiendaStr = request.getParameter("idTienda");
             int idTienda = 1;
+            if (idTiendaStr != null && !idTiendaStr.isEmpty()) idTienda = Integer.parseInt(idTiendaStr);
+
+            String usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
+            if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
 
             try (Connection con = ConexionBD.getConexion()) {
                 if (con != null) {
@@ -234,7 +251,7 @@ public class ApiProveedoresServlet extends HttpServlet {
                         psD.executeUpdate();
                     }
 
-                    registrarAuditoria(con, idTienda, "Usuario", "Proveedores", "ELIMINACIÓN", "Eliminado #" + idProveedor);
+                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Proveedores", "ELIMINACIÓN", "Eliminado #" + idProveedor);
                     out.print("{\"success\":true,\"status\":\"OK\",\"estatus\":\"Exitoso\",\"resultado\":true,\"mensaje\":\"Proveedor eliminado.\"}");
                 }
             }
