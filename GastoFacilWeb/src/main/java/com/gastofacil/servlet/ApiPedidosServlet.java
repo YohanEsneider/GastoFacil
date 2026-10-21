@@ -25,9 +25,9 @@ public class ApiPedidosServlet extends HttpServlet {
         } else {
             response.setHeader("Access-Control-Allow-Origin", "*");
         }
-        response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "*");
+        // Cabeceras explícitas (sin allow-credentials)
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, idTienda, X-Usuario-Id, X-Usuario-Nombre, Accept, Origin, X-Requested-With");
         response.setHeader("Access-Control-Max-Age", "3600");
     }
 
@@ -164,6 +164,10 @@ public class ApiPedidosServlet extends HttpServlet {
 
             int idTienda = extraerNumeroJson(jsonBody, "id_tienda");
             if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "idTienda");
+            if (idTienda == 0) {
+                String hdr = request.getHeader("idTienda");
+                if (hdr != null && !hdr.isEmpty()) try { idTienda = Integer.parseInt(hdr); } catch(Exception e){}
+            }
             if (idTienda == 0) idTienda = 1;
 
             int idProveedor = extraerNumeroJson(jsonBody, "idProveedor");
@@ -259,7 +263,13 @@ public class ApiPedidosServlet extends HttpServlet {
             if (idPedStr == null || idPedStr.isEmpty()) idPedStr = request.getParameter("idPedido");
 
             int idPedido = Integer.parseInt(idPedStr);
+            
+            String idTiendaStr = request.getParameter("idTienda");
             int idTienda = 1;
+            if (idTiendaStr != null && !idTiendaStr.isEmpty()) idTienda = Integer.parseInt(idTiendaStr);
+            
+            String usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
+            if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Usuario";
 
             try (Connection con = ConexionBD.getConexion()) {
                 if (con != null) {
@@ -269,7 +279,7 @@ public class ApiPedidosServlet extends HttpServlet {
                         psD.executeUpdate();
                     }
 
-                    registrarAuditoria(con, idTienda, "Usuario", "Pedidos", "ELIMINACIÓN", "Eliminado #" + idPedido);
+                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "ELIMINACIÓN", "Eliminado #" + idPedido);
                     out.print("{\"success\":true,\"status\":\"OK\",\"estatus\":\"Exitoso\",\"resultado\":true,\"mensaje\":\"Pedido eliminado.\"}");
                 }
             }
