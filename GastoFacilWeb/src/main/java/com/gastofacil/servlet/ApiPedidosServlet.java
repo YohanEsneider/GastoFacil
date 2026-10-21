@@ -25,6 +25,7 @@ public class ApiPedidosServlet extends HttpServlet {
         } else {
             response.setHeader("Access-Control-Allow-Origin", "*");
         }
+        response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, idTienda, X-Usuario-Id, X-Usuario-Nombre");
         response.setHeader("Access-Control-Max-Age", "3600");
@@ -54,7 +55,7 @@ public class ApiPedidosServlet extends HttpServlet {
         try {
             if (idTienda <= 0) return;
             if (usuario == null || usuario.trim().isEmpty() || usuario.equalsIgnoreCase("Usuario")) {
-                usuario = obtenerNombreUsuario(con, idTienda);
+                usuario = "Tienda Prueba";
             }
             if (usuario.length() > 100) usuario = usuario.substring(0, 100);
 
@@ -70,63 +71,6 @@ public class ApiPedidosServlet extends HttpServlet {
         } catch (Exception e) {
             System.err.println("Advertencia auditoria pedidos: " + e.getMessage());
         }
-    }
-
-    private String obtenerNombreUsuario(Connection con, int idTienda) {
-        String nombre = "Tienda Prueba";
-        
-        // 1. Probar en tabla tienda
-        try {
-            String sql = "SELECT nombre FROM tienda WHERE id_tienda = ? LIMIT 1";
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
-                ps.setInt(1, idTienda);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getString("nombre") != null) {
-                        return rs.getString("nombre");
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        // 2. Probar en tabla usuario
-        try {
-            String sql = "SELECT nombre FROM usuario WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
-                ps.setInt(1, idTienda);
-                ps.setInt(2, idTienda);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getString("nombre") != null) {
-                        return rs.getString("nombre");
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        // 3. Probar en tabla usuarios (plural)
-        try {
-            String sql = "SELECT nombre FROM usuarios WHERE id_usuario = ? OR id_tienda = ? LIMIT 1";
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
-                ps.setInt(1, idTienda);
-                ps.setInt(2, idTienda);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getString("nombre") != null) {
-                        return rs.getString("nombre");
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        return nombre;
-    }
-
-    private String resolverUsuarioRequest(HttpServletRequest request, String jsonBody, Connection con, int idTienda) {
-        String usr = extraerValorJson(jsonBody, "usuario");
-        if (usr.isEmpty()) usr = extraerValorJson(jsonBody, "nombreUsuario");
-        if (usr.isEmpty()) usr = request.getHeader("X-Usuario-Nombre");
-        if (usr.isEmpty() || usr.equalsIgnoreCase("Usuario")) {
-            usr = obtenerNombreUsuario(con, idTienda);
-        }
-        return usr;
     }
 
     @Override
@@ -193,7 +137,6 @@ public class ApiPedidosServlet extends HttpServlet {
                         jsonArr.append("\"total\":").append(valorTotal).append(",");
                         jsonArr.append("\"valor_total\":").append(valorTotal).append(",");
 
-                        // Cargar ítems
                         jsonArr.append("\"items\":[");
                         String sqlDet = "SELECT * FROM detalle_pedidos WHERE id_pedido = ? ORDER BY id_detalle ASC";
                         boolean tieneItemsBD = false;
@@ -271,123 +214,125 @@ public class ApiPedidosServlet extends HttpServlet {
         response.setContentType("application/json; charset=UTF-8");
         PrintWriter out = response.getWriter();
 
-        StringBuilder sb = new StringBuilder();
-        String line;
-        try (BufferedReader reader = request.getReader()) {
-            while ((line = reader.readLine()) != null) sb.append(line);
-        }
-
-        String jsonBody = sb.toString();
-
-        int idPedido = extraerNumeroJson(jsonBody, "idPedido");
-        if (idPedido == 0) idPedido = extraerNumeroJson(jsonBody, "id_pedido");
-
-        int idTienda = extraerNumeroJson(jsonBody, "idTienda");
-        if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "id_tienda");
-        if (idTienda == 0) {
-            String idTStr = request.getHeader("idTienda");
-            if (idTStr == null || idTStr.isEmpty()) idTStr = request.getHeader("X-Usuario-Id");
-            if (idTStr != null && !idTStr.isEmpty()) {
-                try { idTienda = Integer.parseInt(idTStr); } catch (Exception ignored) {}
-            }
-        }
-        if (idTienda == 0) idTienda = 1;
-
-        int idProveedor = extraerNumeroJson(jsonBody, "idProveedor");
-        if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id_proveedor");
-
-        String fechaCompra = extraerValorJson(jsonBody, "fechaCompra");
-        if (fechaCompra.isEmpty()) fechaCompra = extraerValorJson(jsonBody, "fecha");
-        if (fechaCompra.isEmpty()) fechaCompra = java.time.LocalDate.now().toString();
-
-        String descripcion = extraerValorJson(jsonBody, "descripcion");
-        if (descripcion.isEmpty()) descripcion = extraerValorJson(jsonBody, "resumen");
-
-        String metodoPago = extraerValorJson(jsonBody, "metodoPago");
-        if (metodoPago.isEmpty()) metodoPago = extraerValorJson(jsonBody, "metodo_pago");
-        if (metodoPago.isEmpty()) metodoPago = "Efectivo";
-
-        double valorTotal = extraerDecimalJson(jsonBody, "valorTotal");
-        if (valorTotal == 0) valorTotal = extraerDecimalJson(jsonBody, "valor_total");
-
-        try (Connection con = ConexionBD.getConexion()) {
-            if (con == null) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error de conexión BD.\"}");
-                return;
+        try {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            try (BufferedReader reader = request.getReader()) {
+                while ((line = reader.readLine()) != null) sb.append(line);
             }
 
-            String usuarioAuditoria = resolverUsuarioRequest(request, jsonBody, con, idTienda);
-            asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
+            String jsonBody = sb.toString();
 
-            if (idProveedor == 0) {
-                String sqlFirst = "SELECT id_proveedor FROM proveedores WHERE id_tienda = ? LIMIT 1";
-                try (PreparedStatement psF = con.prepareStatement(sqlFirst)) {
-                    psF.setInt(1, idTienda);
-                    try (ResultSet rsF = psF.executeQuery()) {
-                        if (rsF.next()) idProveedor = rsF.getInt("id_proveedor");
-                    }
+            int idPedido = extraerNumeroJson(jsonBody, "idPedido");
+            if (idPedido == 0) idPedido = extraerNumeroJson(jsonBody, "id_pedido");
+
+            int idTienda = extraerNumeroJson(jsonBody, "idTienda");
+            if (idTienda == 0) idTienda = extraerNumeroJson(jsonBody, "id_tienda");
+            if (idTienda == 0) {
+                String idTStr = request.getHeader("idTienda");
+                if (idTStr == null || idTStr.isEmpty()) idTStr = request.getHeader("X-Usuario-Id");
+                if (idTStr != null && !idTStr.isEmpty()) {
+                    try { idTienda = Integer.parseInt(idTStr); } catch (Exception ignored) {}
                 }
             }
+            if (idTienda == 0) idTienda = 1;
 
-            if (idPedido > 0) {
-                // ACTUALIZAR
-                String sqlUpdate = "UPDATE pedidos SET id_proveedor = ?, fecha_compra = ?, metodo_pago = ?, valor_total = ?, descripcion = ? WHERE id_pedido = ? AND id_tienda = ?";
-                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
-                    ps.setInt(1, idProveedor);
-                    ps.setString(2, fechaCompra);
-                    ps.setString(3, metodoPago);
-                    ps.setDouble(4, valorTotal);
-                    ps.setString(5, descripcion);
-                    ps.setInt(6, idPedido);
-                    ps.setInt(7, idTienda);
-                    ps.executeUpdate();
+            int idProveedor = extraerNumeroJson(jsonBody, "idProveedor");
+            if (idProveedor == 0) idProveedor = extraerNumeroJson(jsonBody, "id_proveedor");
+
+            String fechaCompra = extraerValorJson(jsonBody, "fechaCompra");
+            if (fechaCompra.isEmpty()) fechaCompra = extraerValorJson(jsonBody, "fecha");
+            if (fechaCompra.isEmpty()) fechaCompra = java.time.LocalDate.now().toString();
+
+            String descripcion = extraerValorJson(jsonBody, "descripcion");
+            if (descripcion.isEmpty()) descripcion = extraerValorJson(jsonBody, "resumen");
+
+            String metodoPago = extraerValorJson(jsonBody, "metodoPago");
+            if (metodoPago.isEmpty()) metodoPago = extraerValorJson(jsonBody, "metodo_pago");
+            if (metodoPago.isEmpty()) metodoPago = "Efectivo";
+
+            double valorTotal = extraerDecimalJson(jsonBody, "valorTotal");
+            if (valorTotal == 0) valorTotal = extraerDecimalJson(jsonBody, "valor_total");
+
+            try (Connection con = ConexionBD.getConexion()) {
+                if (con == null) {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error de conexión a la base de datos.\"}");
+                    return;
                 }
 
-                try (PreparedStatement psDel = con.prepareStatement("DELETE FROM detalle_pedidos WHERE id_pedido = ?")) {
-                    psDel.setInt(1, idPedido);
-                    psDel.executeUpdate();
-                }
+                String usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
+                if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Tienda Prueba";
 
-                guardarDetalleItems(con, idPedido, jsonBody);
-                registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "EDICIÓN", "Se actualizó el pedido #" + idPedido + " por valor de $" + valorTotal);
+                asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
 
-                response.setStatus(HttpServletResponse.SC_OK);
-                out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Pedido actualizado exitosamente.\",\"id_pedido\":" + idPedido + "}");
-            } else {
-                // CREAR
-                String sqlInsert = "INSERT INTO pedidos (id_tienda, id_proveedor, fecha_compra, metodo_pago, valor_total, descripcion) VALUES (?, ?, ?, ?, ?, ?)";
-                try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, idTienda);
-                    ps.setInt(2, idProveedor);
-                    ps.setString(3, fechaCompra);
-                    ps.setString(4, metodoPago);
-                    ps.setDouble(5, valorTotal);
-                    ps.setString(6, descripcion);
-
-                    int rows = ps.executeUpdate();
-                    if (rows > 0) {
-                        int idPedidoGenerado = 0;
-                        try (ResultSet rsKey = ps.getGeneratedKeys()) {
-                            if (rsKey.next()) idPedidoGenerado = rsKey.getInt(1);
+                if (idProveedor == 0) {
+                    String sqlFirst = "SELECT id_proveedor FROM proveedores WHERE id_tienda = ? LIMIT 1";
+                    try (PreparedStatement psF = con.prepareStatement(sqlFirst)) {
+                        psF.setInt(1, idTienda);
+                        try (ResultSet rsF = psF.executeQuery()) {
+                            if (rsF.next()) idProveedor = rsF.getInt("id_proveedor");
                         }
+                    }
+                }
 
-                        guardarDetalleItems(con, idPedidoGenerado, jsonBody);
-                        registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "CREACIÓN", "Se registró un nuevo pedido #" + idPedidoGenerado + " por valor de $" + valorTotal);
+                if (idPedido > 0) {
+                    String sqlUpdate = "UPDATE pedidos SET id_proveedor = ?, fecha_compra = ?, metodo_pago = ?, valor_total = ?, descripcion = ? WHERE id_pedido = ? AND id_tienda = ?";
+                    try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
+                        ps.setInt(1, idProveedor);
+                        ps.setString(2, fechaCompra);
+                        ps.setString(3, metodoPago);
+                        ps.setDouble(4, valorTotal);
+                        ps.setString(5, descripcion);
+                        ps.setInt(6, idPedido);
+                        ps.setInt(7, idTienda);
+                        ps.executeUpdate();
+                    }
 
-                        response.setStatus(HttpServletResponse.SC_CREATED);
-                        out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Pedido registrado exitosamente.\",\"id_pedido\":" + idPedidoGenerado + "}");
-                    } else {
-                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"No se pudo guardar el pedido.\"}");
+                    try (PreparedStatement psDel = con.prepareStatement("DELETE FROM detalle_pedidos WHERE id_pedido = ?")) {
+                        psDel.setInt(1, idPedido);
+                        psDel.executeUpdate();
+                    }
+
+                    guardarDetalleItems(con, idPedido, jsonBody);
+                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "EDICIÓN", "Se actualizó el pedido #" + idPedido + " por $" + valorTotal);
+
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Pedido actualizado exitosamente.\",\"id_pedido\":" + idPedido + "}");
+                } else {
+                    String sqlInsert = "INSERT INTO pedidos (id_tienda, id_proveedor, fecha_compra, metodo_pago, valor_total, descripcion) VALUES (?, ?, ?, ?, ?, ?)";
+                    try (PreparedStatement ps = con.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, idTienda);
+                        ps.setInt(2, idProveedor);
+                        ps.setString(3, fechaCompra);
+                        ps.setString(4, metodoPago);
+                        ps.setDouble(5, valorTotal);
+                        ps.setString(6, descripcion);
+
+                        int rows = ps.executeUpdate();
+                        if (rows > 0) {
+                            int idPedidoGenerado = 0;
+                            try (ResultSet rsKey = ps.getGeneratedKeys()) {
+                                if (rsKey.next()) idPedidoGenerado = rsKey.getInt(1);
+                            }
+
+                            guardarDetalleItems(con, idPedidoGenerado, jsonBody);
+                            registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "CREACIÓN", "Se registró un nuevo pedido #" + idPedidoGenerado + " por $" + valorTotal);
+
+                            response.setStatus(HttpServletResponse.SC_CREATED);
+                            out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Pedido registrado exitosamente.\",\"id_pedido\":" + idPedidoGenerado + "}");
+                        } else {
+                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"No se pudo guardar el pedido.\"}");
+                        }
                     }
                 }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
+            aplicarCors(request, response);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error interno al procesar el pedido.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error interno al procesar el pedido: " + escapeJson(e.getMessage()) + "\"}");
         }
     }
 
@@ -439,50 +384,52 @@ public class ApiPedidosServlet extends HttpServlet {
         response.setContentType("application/json; charset=UTF-8");
         PrintWriter out = response.getWriter();
 
-        String idPedStr = request.getParameter("id");
-        if (idPedStr == null || idPedStr.isEmpty()) idPedStr = request.getParameter("idPedido");
-        if (idPedStr == null || idPedStr.isEmpty()) idPedStr = request.getParameter("id_pedido");
+        try {
+            String idPedStr = request.getParameter("id");
+            if (idPedStr == null || idPedStr.isEmpty()) idPedStr = request.getParameter("idPedido");
 
-        int idPedido = 0;
-        if (idPedStr != null) {
-            try { idPedido = Integer.parseInt(idPedStr); } catch (NumberFormatException ignored) {}
-        }
+            int idPedido = 0;
+            if (idPedStr != null) {
+                try { idPedido = Integer.parseInt(idPedStr); } catch (NumberFormatException ignored) {}
+            }
 
-        if (idPedido <= 0) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"ID de pedido no válido.\"}");
-            return;
-        }
+            if (idPedido <= 0) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"ID de pedido no válido.\"}");
+                return;
+            }
 
-        String idTiendaStr = request.getParameter("idTienda");
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
-        if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("X-Usuario-Id");
+            String idTiendaStr = request.getParameter("idTienda");
+            if (idTiendaStr == null || idTiendaStr.isEmpty()) idTiendaStr = request.getHeader("idTienda");
 
-        int idTienda = 1;
-        if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
-            try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
-        }
+            int idTienda = 1;
+            if (idTiendaStr != null && !idTiendaStr.isEmpty()) {
+                try { idTienda = Integer.parseInt(idTiendaStr); } catch (NumberFormatException ignored) {}
+            }
 
-        try (Connection con = ConexionBD.getConexion()) {
-            if (con != null) {
-                String usuarioAuditoria = resolverUsuarioRequest(request, "", con, idTienda);
-                asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
+            try (Connection con = ConexionBD.getConexion()) {
+                if (con != null) {
+                    String usuarioAuditoria = request.getHeader("X-Usuario-Nombre");
+                    if (usuarioAuditoria == null || usuarioAuditoria.isEmpty()) usuarioAuditoria = "Tienda Prueba";
+                    asegurarTiendaExiste(con, idTienda, usuarioAuditoria);
 
-                String sql = "DELETE FROM pedidos WHERE id_pedido = ?";
-                try (PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setInt(1, idPedido);
-                    ps.executeUpdate();
+                    String sql = "DELETE FROM pedidos WHERE id_pedido = ?";
+                    try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        ps.setInt(1, idPedido);
+                        ps.executeUpdate();
+                    }
+
+                    registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "ELIMINACIÓN", "Se eliminó el pedido #" + idPedido);
+
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    out.print("{\"success\":true,\"status\":\"success\",\"mensaje\":\"Pedido eliminado con éxito.\"}");
                 }
-
-                registrarAuditoria(con, idTienda, usuarioAuditoria, "Pedidos", "ELIMINACIÓN", "Se eliminó el registro del pedido #" + idPedido);
-
-                response.setStatus(HttpServletResponse.SC_OK);
-                out.print("{\"success\":true,\"status\":\"success\",\"estatus\":\"Exitoso\",\"mensaje\":\"Pedido eliminado con éxito.\"}");
             }
         } catch (Exception e) {
             e.printStackTrace();
+            aplicarCors(request, response);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"success\":false,\"status\":\"error\",\"estatus\":\"Error\",\"mensaje\":\"Error al eliminar el pedido.\"}");
+            out.print("{\"success\":false,\"status\":\"error\",\"mensaje\":\"Error al eliminar pedido: " + escapeJson(e.getMessage()) + "\"}");
         }
     }
 
